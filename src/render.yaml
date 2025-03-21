@@ -1,7 +1,0 @@
-services:
-  - type: web
-    name: php-app
-    env: docker
-    repo: https://github.com/Revdovo/DACNPM
-    branch: main
-    plan: free
