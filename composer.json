@@ -1,0 +1,14 @@
+{
+    "name": "my-project",
+    "description": "PHP website for deployment on Render",
+    "require": {
+      "vlucas/phpdotenv": "^5.5",  // For environment variables (optional)
+      "phpmailer/phpmailer": "^6.8" // For email sending (optional)
+    },
+    "autoload": {
+      "psr-4": {
+        "App\\": "server/"
+      }
+    }
+  }
+  
