@@ -1,15 +1,7 @@
 services:
   - type: web
-    name: php-website
-    runtime: php
-    buildCommand: "composer install"
-    startCommand: "php -S 0.0.0.0:10000 -t client"
-    envVars:
-      - key: DB_HOST
-        sync: false
-      - key: DB_USER
-        sync: false
-      - key: DB_PASSWORD
-        sync: false
-      - key: DB_NAME
-        sync: false
+    name: php-app
+    env: docker
+    repo: https://github.com/Revdovo/DACNPM
+    branch: main
+    plan: free
