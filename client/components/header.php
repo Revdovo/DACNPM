@@ -1,4 +1,5 @@
 <?php
+session_start();
 $isLoggedIn = isset($_SESSION['user']);
 ?>
 
@@ -18,7 +19,7 @@ $isLoggedIn = isset($_SESSION['user']);
             <div class="d-flex">
                 <?php if ($isLoggedIn): ?>
                     <span class="navbar-text text-light me-3">Chào, <?= $_SESSION['user']['name'] ?></span>
-                    <a href="./../../server/signOut.php" class="btn btn-outline-light">Đăng xuất</a>
+                    <button class="btn btn-outline-light" id="logoutBtn">Đăng xuất</button>
                 <?php else: ?>
                     <button class="btn btn-outline-light me-2" id="loginBtn">Đăng nhập</button>
                     <button class="btn btn-outline-light" id="registerBtn">Đăng ký</button>

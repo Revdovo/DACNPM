@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>My App | Design</title>
+    <title>Workspace</title>
 
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -17,7 +17,7 @@
 
     <!-- Controllers -->
     <script src="controller/3dModelController.js" defer></script>
-    <script src="controller/calculationController.js" defer></script>
+    <script src="controller/designController.js" defer></script>
 </head>
 <body>
     <?php include 'components/header.php'; ?>
@@ -27,6 +27,14 @@
         <div class="row h-100">
             <!-- Sidebar -->
             <aside class="col-2 sidebar d-flex flex-column">
+                <section class="mb-3 text-center">
+                    <h3 class="text-white">Mã Workspace</h3>
+                    <div class="d-flex align-items-center justify-content-center">
+                        <input type="text" id="workspaceCodeDisplay" class="form-control text-center fw-bold code-box" readonly>
+                    </div>
+                    <small id="workspaceStatus" class="text-warning mt-2 fw-bold d-block fs-5">Trạng thái: pending</small>
+                </section>
+
                 <section>
                     <h3>Tính toán</h3>
                     <form id="calculationForm">
@@ -52,21 +60,18 @@
 
             <!-- 3D Canvas -->
             <main class="col-8 canvas-container position-relative" id="canvas-container">
-                
             </main>
 
             <!-- Result Section -->
             <aside class="col-2 result-column d-flex flex-column align-items-center">
                 <h2>Kết quả</h2>
-                <p>(Placeholder)
+                <p>(Placeholder)</p>
             </aside>
         </div>
     </div>
 
     <?php include 'components/footer.php'; ?>
-
     <?php include 'components/cal_error.php'; ?>
-
     <?php include 'components/chatbox.php'; ?>
 
     <!-- Bootstrap JS -->

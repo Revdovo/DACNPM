@@ -42,7 +42,7 @@
 
         <!-- Nút điều hướng -->
         <div class="mt-4">
-            <a href="design.php" class="btn btn-primary btn-lg">Bắt đầu Thiết kế</a>
+            <a href="workspace.php" class="btn btn-primary btn-lg">Bắt đầu Thiết kế</a>
             <a href="catalog.php" class="btn btn-outline-secondary btn-lg">Khám phá Catalog</a>
         </div>
     </main>

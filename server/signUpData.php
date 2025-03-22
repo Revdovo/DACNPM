@@ -30,7 +30,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         // Insert new user
         $stmt = $pdo->prepare("INSERT INTO users (name, email, password) VALUES (?, ?, ?)");
         if ($stmt->execute([$name, $email, $hashedPassword])) {
-            session_start();
             $_SESSION["user"] = ["name" => $name, "email" => $email];
             echo json_encode(["success" => true, "message" => "Đăng ký thành công!"]);
         } else {

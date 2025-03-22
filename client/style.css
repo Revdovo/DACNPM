@@ -35,6 +35,16 @@ body {
     display: flex;
 }
 
+.code-box {
+    cursor: pointer; /* Hiển thị con trỏ chỉ tay khi di chuột */
+    user-select: all; /* Cho phép chọn nhanh */
+    border: 2px solid #ffc107; /* Viền vàng */
+    background-color: #fff;
+    font-size: 1.2rem;
+    width: 120px; /* Điều chỉnh kích thước */
+}
+
+
 /* Sidebar */
 .sidebar {
     display: flex;
