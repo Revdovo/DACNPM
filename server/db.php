@@ -1,8 +1,8 @@
 <?php
-$host = "localhost";
-$dbname = "mydatabase";
-$username = "root";
-$password = "";
+$host = "sql12.freesqldatabase.com";
+$dbname = "sql12768969";
+$username = "sql12768969";
+$password = "JSwlDlPmqu";
 
 try {
     $pdo = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8", $username, $password);
