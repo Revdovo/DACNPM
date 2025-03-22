@@ -1,7 +1,6 @@
 <?php
 session_start();
 header("Content-Type: application/json"); // Đảm bảo trả về JSON
-require __DIR__ . '/../server/db.php'; // Kết nối CSDL nếu cần
 
 try {
     $method = $_SERVER['REQUEST_METHOD'];
