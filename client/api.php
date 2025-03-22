@@ -9,12 +9,12 @@ try {
     switch ($action) {
         case 'signin':
             if ($method !== 'POST') throw new Exception("Method not allowed", 405);
-            require __DIR__ . '/../server/SignInData.php';
+            require __DIR__ . '/server/SignInData.php';
             break;
 
         case 'signup':
             if ($method !== 'POST') throw new Exception("Method not allowed", 405);
-            require __DIR__ . '/../server/SignUpData.php';
+            require __DIR__ . '/server/SignUpData.php';
             break;
 
         case 'signout':
@@ -24,11 +24,11 @@ try {
             exit;
 
         case 'check_workspace':
-            require __DIR__ . '/../server/CheckWorkspaceData.php';
+            require __DIR__ . '/server/CheckWorkspaceData.php';
             break;
 
         case 'getWorkspace':
-            require __DIR__ . '/../server/designDataHandler.php';
+            require __DIR__ . '/server/designDataHandler.php';
             echo json_encode(getWorkspaceData($_GET['code'] ?? ''));
             exit;
 
@@ -38,12 +38,12 @@ try {
                 throw new Exception("Thiếu thông tin cần thiết", 400);
             }
 
-            require __DIR__ . '/../server/designDataHandler.php';
+            require __DIR__ . '/server/designDataHandler.php';
             echo json_encode(updateWorkspaceData($data['code'], $data['num1'], $data['num2'], $data['num3']));
             exit;
 
         case 'get_user_workspaces':
-            require __DIR__ . '/../server/userWorkspaceHandler.php';
+            require __DIR__ . '/server/userWorkspaceHandler.php';
 
             if (!isset($_SESSION['user']['id'])) {
                 echo json_encode(['success' => false, 'message' => 'Chưa đăng nhập']);
@@ -60,7 +60,7 @@ try {
 
 
         case 'get_guest_workspaces':
-            require __DIR__ . '/../server/userWorkspaceHandler.php';
+            require __DIR__ . '/server/userWorkspaceHandler.php';
             
             if (!isset($_SESSION['user']['id'])) {
                 echo json_encode(['success' => false, 'message' => 'Chưa đăng nhập']);
@@ -76,7 +76,7 @@ try {
             exit;
 
         case 'delete_workspace':
-            require __DIR__ . '/../server/userWorkspaceHandler.php';
+            require __DIR__ . '/server/userWorkspaceHandler.php';
             
             if (!isset($_SESSION['user']['id'])) {
                 echo json_encode(['success' => false, 'message' => 'Chưa đăng nhập']);
@@ -96,7 +96,7 @@ try {
             exit;
 
         case 'leave_workspace':
-            require __DIR__ . '/../server/userWorkspaceHandler.php';
+            require __DIR__ . '/server/userWorkspaceHandler.php';
             
             if (!isset($_SESSION['user']['id'])) {
                 echo json_encode(['success' => false, 'message' => 'Chưa đăng nhập']);
