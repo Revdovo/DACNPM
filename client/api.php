@@ -1,6 +1,7 @@
 <?php
 session_start();
 header("Content-Type: application/json"); // Đảm bảo trả về JSON
+require __DIR__ . '/server/db.php'; // Kết nối CSDL nếu cần
 
 try {
     $method = $_SERVER['REQUEST_METHOD'];
@@ -38,7 +39,7 @@ try {
                 throw new Exception("Thiếu thông tin cần thiết", 400);
             }
 
-            require __DIR__ . '/server/designDataHandler.php';
+            require __DIR__ . 'server/designDataHandler.php';
             echo json_encode(updateWorkspaceData($data['code'], $data['num1'], $data['num2'], $data['num3']));
             exit;
 
@@ -60,7 +61,7 @@ try {
 
 
         case 'get_guest_workspaces':
-            require __DIR__ . '/server/userWorkspaceHandler.php';
+            require __DIR__ . 'server/userWorkspaceHandler.php';
             
             if (!isset($_SESSION['user']['id'])) {
                 echo json_encode(['success' => false, 'message' => 'Chưa đăng nhập']);
