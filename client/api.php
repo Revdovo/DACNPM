@@ -31,7 +31,7 @@ try {
         case 'getWorkspace':
             require __DIR__ . '/server/designDataHandler.php';
             echo json_encode(getWorkspaceData($_GET['code'] ?? ''));
-            exit;
+            exit;error_log("Updating values: Code = $code, P = $P, n = $n, L = $L");
 
         case 'updateWorkspace':
             $data = json_decode(file_get_contents("php://input"), true);
@@ -39,7 +39,7 @@ try {
                 throw new Exception("Thiếu thông tin cần thiết", 400);
             }
 
-            require __DIR__ . 'server/designDataHandler.php';
+            require __DIR__ . '/server/designDataHandler.php';
             echo json_encode(updateWorkspaceData($data['code'], $data['num1'], $data['num2'], $data['num3']));
             exit;
 
@@ -61,7 +61,7 @@ try {
 
 
         case 'get_guest_workspaces':
-            require __DIR__ . 'server/userWorkspaceHandler.php';
+            require __DIR__ . '/server/userWorkspaceHandler.php';
             
             if (!isset($_SESSION['user']['id'])) {
                 echo json_encode(['success' => false, 'message' => 'Chưa đăng nhập']);
@@ -115,6 +115,39 @@ try {
             $result = leaveWorkspace($_SESSION['user']['id'], $workspaceId);
             echo json_encode(['success' => $result]);
             exit;
+        
+        case 'create_workspace':
+            require __DIR__ . '/server/userWorkspaceHandler.php';
+
+            if (!isset($_SESSION['user']['id'])) {
+                echo json_encode(['success' => false, 'message' => 'Chưa đăng nhập']);
+                exit;
+            }
+
+            $result = createWorkspace($_SESSION['user']['id']);
+            echo json_encode(['success' => $result]);
+            exit;
+        
+        case 'get_efficiency':
+            require __DIR__ . '/server/getEfficiencyData.php';
+            exit;
+        
+        case 'getTransmissionRatios':
+            require __DIR__ . '/server/getTransmissionRatiosData.php';
+            exit;
+
+        case 'getEngineData':
+            require __DIR__ . '/server/getEngineData.php';
+            exit;
+
+        case 'getTriSoViTriBanhRang':
+            require __DIR__ . '/server/getTriSoViTriBanhRang.php';
+            exit;
+
+        case 'getGearMaterialData':
+            require __DIR__ . '/server/getGearMaterialData.php';
+            exit;
+
 
         default:
             throw new Exception("Invalid request", 400);

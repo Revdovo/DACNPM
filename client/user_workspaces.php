@@ -26,9 +26,12 @@
         .menu-left .btn-create {
             margin-top: auto;
         }
+        .list-group-item:hover {
+            background-color: #d6d8db;
+        }
 
         .workspace-container {
-            min-height: 400px;
+            min-height: 600px;
             overflow-y: auto;
             background: #f8f9fa;
             padding: 15px;
@@ -58,7 +61,7 @@
                         <a href="?type=your" class="list-group-item list-group-item-action <?= (!isset($_GET['type']) || $_GET['type'] == 'your') ? 'active' : '' ?>">Workspace của bạn</a>
                         <a href="?type=guest" class="list-group-item list-group-item-action <?= (isset($_GET['type']) && $_GET['type'] == 'guest') ? 'active' : '' ?>">Workspace khác</a>
                     </div>
-                    <button class="btn btn-success w-100 btn-create" data-bs-toggle="modal" data-bs-target="#createWorkspaceModal">Tạo mới</button>
+                    <button id="btn-create-workspace" class="btn btn-success w-100 btn-create">Tạo mới</button>
                 </div>
             </div>
 
@@ -66,8 +69,12 @@
             <div class="col-md-9">
                 <div class="workspace-container">
                     <h4 id="workspace-title">Danh sách Workspace</h4>
-                    <div id="workspace-list">
-                        <p class="text-muted text-center">Đang tải...</p>
+                    <div id="workspace-list" class="row">
+                        <div class="text-center">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Đang tải...</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -76,57 +83,9 @@
 
     <?php include 'components/footer.php'; ?>
 
-    <!-- Modal Tạo Workspace -->
-    <div class="modal fade" id="createWorkspaceModal" tabindex="-1" aria-labelledby="createWorkspaceModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="createWorkspaceModalLabel">Tạo Workspace mới</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="createWorkspaceForm">
-                        <div class="mb-3">
-                            <label for="workspaceName" class="form-label">Tên Workspace</label>
-                            <input type="text" class="form-control" id="workspaceName" required>
-                        </div>
-                        <button type="submit" class="btn btn-primary">Tạo</button>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="controller/userWorkspacesController.js"></script>
-    <script>
-        document.getElementById('createWorkspaceForm').addEventListener('submit', function(event) {
-            event.preventDefault();
-            const name = document.getElementById('workspaceName').value.trim();
-            if (!name) {
-                alert("Vui lòng nhập tên workspace.");
-                return;
-            }
-
-            fetch("api.php?action=create_workspace", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ name })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert("Tạo workspace thành công!");
-                    document.getElementById('createWorkspaceForm').reset();
-                    loadWorkspaces();
-                    bootstrap.Modal.getInstance(document.getElementById('createWorkspaceModal')).hide();
-                } else {
-                    alert("Lỗi: " + data.message);
-                }
-            })
-            .catch(error => console.error("Lỗi khi tạo workspace:", error));
-        });
-    </script>
+    
 </body>
 </html>

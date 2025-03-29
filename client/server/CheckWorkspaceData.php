@@ -1,7 +1,7 @@
 <?php
 require 'db.php';
 
-header("Content-Type: application/json"); // Đảm bảo phản hồi JSON
+header("Content-Type: application/json");
 
 if (!isset($_SESSION['user'])) {
     error_log("ERROR: Người dùng chưa đăng nhập!");
@@ -19,7 +19,7 @@ if (empty($code) || !preg_match('/^\d{6}$/', $code)) {
 }
 
 try {
-    $stmt = $pdo->prepare("SELECT entry_id, user_id FROM workspace WHERE code = ?");
+    $stmt = $pdo->prepare("SELECT id, user_id FROM Workspace WHERE code = ?");
     $stmt->execute([$code]);
     $workspace = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -29,10 +29,10 @@ try {
         exit();
     }
 
-    $workspace_id = $workspace['entry_id'];
-    $user_id = $workspace['user_id'];
+    $workspace_id = $workspace['id'];
+    $owner_id = $workspace['user_id'];
 
-    if ($curuser_id == $user_id) {
+    if ($curuser_id == $owner_id) {
         echo json_encode([
             "status" => "success",
             "message" => "Bạn là chủ sở hữu của workspace này!",
@@ -41,12 +41,14 @@ try {
         exit();
     }
 
-    $stmt = $pdo->prepare("SELECT COUNT(*) FROM workspace_guests WHERE workspace_id = ? AND user_id = ?");
+    // Kiểm tra nếu người dùng đã tham gia workspace trước đó
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM guest WHERE workspace_id = ? AND user_id = ?");
     $stmt->execute([$workspace_id, $curuser_id]);
     $isGuest = $stmt->fetchColumn();
 
+    // Nếu chưa tham gia, thêm vào danh sách khách
     if (!$isGuest) {
-        $stmt = $pdo->prepare("INSERT INTO workspace_guests (workspace_id, user_id) VALUES (?, ?)");
+        $stmt = $pdo->prepare("INSERT INTO guest (workspace_id, user_id) VALUES (?, ?)");
         $stmt->execute([$workspace_id, $curuser_id]);
     }
 
@@ -57,6 +59,7 @@ try {
     ]);
 } catch (PDOException $e) {
     error_log("ERROR: Lỗi truy vấn CSDL - " . $e->getMessage());
-    echo json_encode(["status" => "error", "message" => "Lỗi truy vấn CSDL!"]);
+    echo json_encode(["status" => "error", "message" => "Lỗi truy vấn CSDL: " . $e->getMessage()]);
 }
+
 ?>

@@ -14,10 +14,13 @@
 
     <!-- Three.js Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" defer></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script> 
 
     <!-- Controllers -->
-    <script src="controller/3dModelController.js" defer></script>
+    
     <script src="controller/designController.js" defer></script>
+    <script src="controller/3dModelController.js" defer></script>
+
 </head>
 <body>
     <?php include 'components/header.php'; ?>
@@ -38,11 +41,19 @@
                 <section>
                     <h3>Tính toán</h3>
                     <form id="calculationForm">
-                        <input type="number" name="num1" placeholder="Nhập số P" required>
-                        <input type="number" name="num2" placeholder="Nhập số n" required>
-                        <input type="number" name="num3" placeholder="Nhập số L" required>
-                        <button type="submit">Tính</button>
+                        <input type="number" name="num1" placeholder="Nhập số P" required step="any" min="0">
+                        <input type="number" name="num2" placeholder="Nhập số n" required step="any" min="0">
+                        <input type="number" name="num3" placeholder="Nhập số L" required step="any" min="0">
+                        <button type="submit" id="updateButton">Cập nhật dữ liệu</button>
                     </form>
+                    <div class="d-flex align-items-center gap-2">
+                        <button id="manualCalculationBtn" class="btn btn-primary btn-lg" data-bs-toggle="modal" data-bs-target="#calculationModal">
+                            Tính
+                        </button>
+                        <button id="autoCalculationBtn" class="btn btn-danger btn-lg">
+                            <i class="bi bi-gear"></i>
+                        </button>
+                    </div>
                 </section>
 
                 <section class="mt-3">
@@ -54,25 +65,46 @@
                         <button class="btn btn-outline-light" id="viewHistory">
                             <i class="bi bi-clock-history"></i> Lịch sử
                         </button>
+                        <button class="btn btn-outline-light" id="boardModel" data-bs-toggle="modal" data-bs-target="#boardModal">
+                            <i class="bi"></i> Bảng đặc tính
+                        </button>
+                        <button class="btn btn-outline-light" id="view3DModel">
+                            <i class="bi"></i> Mô hình 3D
+                        </button>
                     </div>
                 </section>
             </aside>
 
-            <!-- 3D Canvas -->
-            <main class="col-8 canvas-container position-relative" id="canvas-container">
+            <!-- Result Section -->
+            <main class="col-10 result-container d-flex flex-column align-items-center">
+            <h2>Kết quả</h2>
+                <div id="calculationResult" class="d-flex w-100 justify-content-between">
+                    <div class="col calculation-section"><h5>Chọn Động Cơ</h5></div>
+                    <div class="col calculation-section"><h5>Thiết kế bộ truyền bánh răng</h5></div>
+                    <div class="col calculation-section"><h5>Thiết kế bộ trục</h5></div>
+                    <div class="col calculation-section"><h5>Thiết kế bộ ổ lăn</h5></div>
+                    <div class="col calculation-section"><h5>Thiết kế bộ vỏ hộp giảm tốc và bôi trơn</h5></div>
+                </div>
+                <div id="calculationResult" class="d-flex w-100 justify-content-between">
+                    <div class="result-col col"></div>
+                    <div class="result-col col"></div>
+                    <div class="result-col col"></div>
+                    <div class="result-col col"></div>
+                    <div class="result-col col"></div>
+                </div>
             </main>
 
-            <!-- Result Section -->
-            <aside class="col-2 result-column d-flex flex-column align-items-center">
-                <h2>Kết quả</h2>
-                <p>(Placeholder)</p>
-            </aside>
+            <!-- 3D Canvas -->
+            <!-- <main class="col-8 canvas-container position-relative" id="canvas-container">
+            </main> -->
         </div>
     </div>
 
     <?php include 'components/footer.php'; ?>
     <?php include 'components/cal_error.php'; ?>
+    <?php include 'components/calculation.php'; ?>
     <?php include 'components/chatbox.php'; ?>
+    <?php include 'components/board.php'; ?>
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

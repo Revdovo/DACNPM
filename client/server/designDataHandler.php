@@ -45,9 +45,9 @@ try {
         }
 
         $code = $data['code'];
-        $num1 = (int) $data['num1'];
-        $num2 = (int) $data['num2'];
-        $num3 = (int) $data['num3'];
+        $P = (float) $data['num1'];
+        $n = (int) $data['num2'];
+        $L = (float) $data['num3'];
 
         // Kiểm tra xem workspace có tồn tại không
         $stmt = $pdo->prepare("SELECT * FROM workspace WHERE code = ? LIMIT 1");
@@ -59,13 +59,13 @@ try {
             throw new Exception("Workspace không tồn tại");
         }
 
-        // Cập nhật dữ liệu
-        $stmt = $pdo->prepare("UPDATE workspace SET num1 = ?, num2 = ?, num3 = ? WHERE code = ?");
-        $stmt->bindParam(1, $num1, PDO::PARAM_INT);
-        $stmt->bindParam(2, $num2, PDO::PARAM_INT);
-        $stmt->bindParam(3, $num3, PDO::PARAM_INT);
+        $stmt = $pdo->prepare("UPDATE workspace SET P = ?, n = ?, L = ? WHERE code = ?");
+        $stmt->bindParam(1, $P, PDO::PARAM_STR);
+        $stmt->bindParam(2, $n, PDO::PARAM_INT);
+        $stmt->bindParam(3, $L, PDO::PARAM_STR);
         $stmt->bindParam(4, $code, PDO::PARAM_STR);
         $stmt->execute();
+
 
         if ($stmt->rowCount() > 0) {
             echo json_encode(["success" => true, "message" => "Cập nhật thành công"]);

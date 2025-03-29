@@ -1,5 +1,6 @@
 document.addEventListener("DOMContentLoaded", function () {
     loadWorkspaces();
+    document.querySelector(".btn-create").addEventListener("click", createWorkspace);
 });
 
 function loadWorkspaces() {
@@ -29,7 +30,7 @@ function loadWorkspaces() {
                                 </div>
                                 <div>
                                     <button class="btn btn-warning" onclick="enterWorkspace('${workspace.code}')">Vào</button>
-                                    <button class="btn btn-danger" onclick="deleteWorkspace(${workspace.entry_id})">Xóa</button>
+                                    <button class="btn btn-danger" onclick="deleteWorkspace(${workspace.id})">Xóa</button>
                                 </div>
                             </div>
                         `;
@@ -58,7 +59,7 @@ function loadWorkspaces() {
                                 </div>
                                 <div>
                                     <button class="btn btn-warning" onclick="enterWorkspace('${workspace.code}')">Vào</button>
-                                    <button class="btn btn-secondary" onclick="leaveWorkspace(${workspace.entry_id})">Rời</button>
+                                    <button class="btn btn-danger" onclick="leaveWorkspace(${workspace.id})">Rời</button>
                                 </div>
                             </div>
                         `;
@@ -88,7 +89,7 @@ function deleteWorkspace(workspaceId) {
     .then(data => {
         if (data.success) {
             alert("Xóa workspace thành công!");
-            loadWorkspaces(); // Tải lại danh sách
+            loadWorkspaces();
         } else {
             alert("Lỗi khi xóa workspace: " + data.message);
         }
@@ -108,10 +109,28 @@ function leaveWorkspace(workspaceId) {
     .then(data => {
         if (data.success) {
             alert("Rời khỏi workspace thành công!");
-            loadWorkspaces(); // Tải lại danh sách
+            loadWorkspaces();
         } else {
             alert("Lỗi khi rời khỏi workspace: " + data.message);
         }
     })
     .catch(error => console.error("Lỗi khi rời khỏi workspace:", error));
+}
+
+function createWorkspace() {
+    fetch("api.php?action=create_workspace", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({})
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert("Tạo workspace thành công!");
+            loadWorkspaces();
+        } else {
+            alert("Lỗi khi tạo workspace: " + data.message);
+        }
+    })
+    .catch(error => console.error("Lỗi khi tạo workspace:", error));
 }

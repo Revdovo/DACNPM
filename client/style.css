@@ -129,6 +129,33 @@ body {
     background: #1565C0;
 }
 
+#autoCalculationBtn {
+    background: red !important;
+    color: white !important;
+    width: 48px; /* Giới hạn chiều rộng */
+    height: 48px; /* Giới hạn chiều cao để thành hình vuông */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px; /* Bo góc nhẹ */
+    transition: background 0.3s ease, transform 0.1s ease;
+}
+
+#autoCalculationBtn i {
+    font-size: 1.2rem; /* Chỉnh kích thước icon */
+}
+
+#autoCalculationBtn:hover {
+    background: darkred !important;
+    transform: scale(1.1);
+}
+
+/* Khi bật Auto */
+#autoCalculationBtn.active {
+    background: green !important;
+}
+
+
 /* 3D Canvas */
 .canvas-container {
     flex: 1;
@@ -239,16 +266,44 @@ body {
 }
 
 /* Result Column */
-.result-column {
+.result-container {
     background: #2196F3;
     padding: 20px;
     display: flex;
     flex-direction: column;
-    justify-content: center;
-    align-items: center;
+    align-items: flex-start; /* Đưa chữ "Kết quả" lên đầu */
     box-shadow: 2px 0 5px rgba(0, 0, 0, 0.2);
     color: white;
     min-height: 100vh;
+    min-width: 130vh;
+}
+
+/* Tiêu đề "Kết quả" */
+.result-title {
+    font-size: 24px;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.calculation-section {
+    background-color: #1976D2;
+    color: white;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+    border: 1px solid white;
+}
+
+
+
+
+#calculationResult {
+    width: 100%;
+    max-width: 900px;
+    display: flex;
+    justify-content: space-between;
 }
 
 /* Scroll Button */
