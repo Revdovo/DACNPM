@@ -16,6 +16,9 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" defer></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script> 
 
+    <!-- Thêm thư viện jsPDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
     <!-- Controllers -->
     
     <script src="controller/designController.js" defer></script>
