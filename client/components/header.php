@@ -7,7 +7,7 @@ $isLoggedIn = isset($_SESSION['user']);
     <div class="container-fluid">
         <a class="navbar-brand d-flex align-items-center gap-2" href="index.php">
             <img src="images/logoBK.png" alt="BK Logo" width="40" height="40">
-            <span>My App</span>
+            <span>Web Tính toán hộp giảm tốc</span>
         </a>
 
         <div class="collapse navbar-collapse justify-content-between">

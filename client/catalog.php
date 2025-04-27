@@ -22,6 +22,8 @@ $searchQuery = isset($_GET['search']) ? $_GET['search'] : '';
 
     <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css">
+
+    <script src="controller/catalogController.js" defer></script>
 </head>
 <body>
     <?php include 'components/header.php'; ?>
@@ -62,19 +64,8 @@ $searchQuery = isset($_GET['search']) ? $_GET['search'] : '';
                                 <th>Điện áp (V)</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            <tr>
-                                <td>{Model}</td>
-                                <td>{Công suất}</td>
-                                <td>{Tốc độ}</td>
-                                <td>{Điện áp}</td>
-                            </tr>
-                            <tr>
-                                <td>{Model}</td>
-                                <td>{Công suất}</td>
-                                <td>{Tốc độ}</td>
-                                <td>{Điện áp}</td>
-                            </tr>
+                        <tbody id="engineTable">
+                            
                         </tbody>
                     </table>
 

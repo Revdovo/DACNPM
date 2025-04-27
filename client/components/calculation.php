@@ -84,8 +84,8 @@
                 </div>
 
                 <!-- Bước 1: Chọn Loại Thép, Nhiệt Luyện -->
-                <div id="step5">
-                    <h5>Bước 2a: Chọn vật liệu bánh răng</h5>
+                <div id="step5" class="calculation-step d-none">
+                    <h5>Bước 2a: Chọn vật liệu bánh răng dẫn</h5>
                     <div class="table-responsive" style="height: 80vh; overflow-y: auto;">
                         <table class="table table-bordered">
                             <thead class="table-dark">
@@ -100,6 +100,28 @@
                                 </tr>
                             </thead>
                             <tbody id="bevelGearMaterial">
+                                
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div id="step6" class="calculation-step d-none">
+                    <h5>Bước 2b: Chọn vật liệu bánh răng bị dẫn</h5>
+                    <div class="table-responsive" style="height: 80vh; overflow-y: auto;">
+                        <table class="table table-bordered">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Nhãn hiệu thép</th>
+                                    <th>Nhiệt luyện</th>
+                                    <th>Kích thước (mm)</th>
+                                    <th>Độ cứng (HB/HRC)</th>
+                                    <th>Giới hạn bền (MPa)</th>
+                                    <th>Giới hạn chảy (MPa)</th>
+                                    <th class="text-center">Chọn</th>
+                                </tr>
+                            </thead>
+                            <tbody id="bevelGearMaterial2">
                                 
                             </tbody>
                         </table>

@@ -32,7 +32,7 @@
     <div class="container-fluid">
         <div class="row h-100">
             <!-- Sidebar -->
-            <aside class="col-2 sidebar d-flex flex-column">
+            <aside class="col-3 sidebar d-flex flex-column">
                 <section class="mb-3 text-center">
                     <h3 class="text-white">Mã Workspace</h3>
                     <div class="d-flex align-items-center justify-content-center">
@@ -40,7 +40,6 @@
                     </div>
                     <small id="workspaceStatus" class="text-warning mt-2 fw-bold d-block fs-5">Trạng thái: pending</small>
                 </section>
-
                 <section>
                     <h3>Tính toán</h3>
                     <form id="calculationForm">
@@ -50,10 +49,10 @@
                         <button type="submit" id="updateButton">Cập nhật dữ liệu</button>
                     </form>
                     <div class="d-flex align-items-center gap-2">
-                        <button id="manualCalculationBtn" class="btn btn-primary btn-lg" data-bs-toggle="modal" data-bs-target="#calculationModal">
+                        <button id="manualCalculationBtn" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#calculationModal">
                             Tính
                         </button>
-                        <button id="autoCalculationBtn" class="btn btn-danger btn-lg">
+                        <button id="autoCalculationBtn" class="btn btn-danger">
                             <i class="bi bi-gear"></i>
                         </button>
                     </div>
@@ -68,48 +67,80 @@
                         <button class="btn btn-outline-light" id="viewHistory">
                             <i class="bi bi-clock-history"></i> Lịch sử
                         </button>
-                        <button class="btn btn-outline-light" id="boardModel" data-bs-toggle="modal" data-bs-target="#boardModal">
-                            <i class="bi"></i> Bảng đặc tính
-                        </button>
-                        <button class="btn btn-outline-light" id="view3DModel">
-                            <i class="bi"></i> Mô hình 3D
-                        </button>
                     </div>
                 </section>
             </aside>
 
-            <!-- Result Section -->
-            <main class="col-10 result-container d-flex flex-column align-items-center">
-            <h2>Kết quả</h2>
-                <div id="calculationResult" class="d-flex w-100 justify-content-between">
-                    <div class="col calculation-section"><h5>Chọn Động Cơ</h5></div>
-                    <div class="col calculation-section"><h5>Thiết kế bộ truyền bánh răng</h5></div>
-                    <div class="col calculation-section"><h5>Thiết kế bộ trục</h5></div>
-                    <div class="col calculation-section"><h5>Thiết kế bộ ổ lăn</h5></div>
-                    <div class="col calculation-section"><h5>Thiết kế bộ vỏ hộp giảm tốc và bôi trơn</h5></div>
-                </div>
-                <div id="calculationResult" class="d-flex w-100 justify-content-between">
-                    <div class="result-col col"></div>
-                    <div class="result-col col"></div>
-                    <div class="result-col col"></div>
-                    <div class="result-col col"></div>
-                    <div class="result-col col"></div>
-                </div>
-            </main>
-
             <!-- 3D Canvas -->
-            <!-- <main class="col-8 canvas-container position-relative" id="canvas-container">
-            </main> -->
+            <main class="col-6 canvas-container position-relative" id="canvas-container">
+                <!-- Dropdown để chọn tab -->
+                <div class="mb-3 w-50" id="tabSelectorContainer">
+                    <label for="resultSelector" class="form-label">Chọn mục kết quả:</label>
+                    <select id="resultSelector" class="form-select">
+                        <option value="tab1">Chọn Động Cơ</option>
+                        <option value="tab2">Thiết kế bộ truyền bánh răng côn</option>
+                        <option value="tab3">Thiết kế bộ truyền bánh răng trụ</option>
+                        <option value="tab4">Thiết kế bộ truyền xích</option>
+                        <option value="tab5">Thiết kế trụ</option>
+                    </select>
+
+                    <!-- Nút Ẩn/Hiện cột kết quả -->
+                    <button id="toggleResultBtn" class="btn btn-primary mt-2 w-100">Hiện kết quả</button>
+
+                    <button id="boardModel" class="btn btn-primary mt-2 w-100" data-bs-toggle="modal" data-bs-target="#boardModal">
+                        Bảng đặc tính
+                    </button>
+                    <button id="numberBoardModel" class="btn btn-primary mt-2 w-100" data-bs-toggle="modal" data-bs-target="#numberBoardModal">
+                        Thông số
+                    </button>
+                </div>
+
+
+                <aside class="col-3 result-container d-flex flex-column align-items-center d-none">
+                    <h2>Kết quả</h2>
+
+                    <!-- Nội dung các tab -->
+                    <div class="tab-content w-100 overflow-auto" style="max-height: 75vh;">
+                        <div id="tab1" class="d-none">
+                            <h5>Chọn Động Cơ</h5>
+                            <div></div>
+                        </div>
+
+                        <div id="tab2" class="d-none">
+                            <h5>Thiết kế bộ truyền bánh răng côn</h5>
+                            <div></div>
+                        </div>
+
+                        <div id="tab3" class="d-none">
+                            <h5>Thiết kế bộ truyền bánh răng trụ</h5>
+                            <div></div>
+                        </div>
+
+                        <div id="tab4" class="d-none">
+                            <h5>Thiết kế bộ truyền xích</h5>
+                            <div></div>
+                        </div>
+
+                        <div id="tab5" class="d-none">
+                            <h5>Thiết kế trụ</h5>
+                            <div></div>
+                        </div>
+                    </div>
+                </aside>
+            </main>
         </div>
     </div>
+
 
     <?php include 'components/footer.php'; ?>
     <?php include 'components/cal_error.php'; ?>
     <?php include 'components/calculation.php'; ?>
     <?php include 'components/chatbox.php'; ?>
     <?php include 'components/board.php'; ?>
+    <?php include 'components/numberBoard.php'; ?>
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
 </body>
 </html>
