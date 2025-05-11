@@ -1,8 +1,10 @@
 <?php
+// Giả sử role của người dùng được lưu trong $_SESSION['user_role']
+$isAdmin = isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin';
+
 $categories = [
     "dongco" => "Động cơ",
     "banhRang" => "Bánh răng",
-    "oTruc" => "Ổ trục"
 ];
 
 $selectedCategory = isset($_GET['category']) ? $_GET['category'] : 'dongco';
@@ -58,10 +60,19 @@ $searchQuery = isset($_GET['search']) ? $_GET['search'] : '';
                     <table class="table table-bordered">
                         <thead class="table-dark">
                             <tr>
-                                <th>Model</th>
+                                <th>Kiểu động cơ</th>
                                 <th>Công suất (kW)</th>
-                                <th>Tốc độ (RPM)</th>
-                                <th>Điện áp (V)</th>
+                                <th>Công suất (HP)</th>
+                                <th>Vận tốc (50Hz)</th>
+                                <th>Vận tốc (60Hz)</th>
+                                <th>Hiệu suất (%)</th>
+                                <th>Cos φ</th>
+                                <th>I_K/I_dn</th>
+                                <th>T_K/T_dn</th>
+                                <th>Khối lượng (kg)</th>
+                                <?php if ($isAdmin): ?>
+                                    <th>Hành động</th>
+                                <?php endif; ?>
                             </tr>
                         </thead>
                         <tbody id="engineTable">
@@ -70,58 +81,25 @@ $searchQuery = isset($_GET['search']) ? $_GET['search'] : '';
                     </table>
 
                 <?php elseif ($selectedCategory == "banhRang"): ?>
-                    <h4>Bánh răng</h4>
+                    <h4>Cơ tính vật liệu</h4>
                     <table class="table table-bordered">
                         <thead class="table-dark">
                             <tr>
-                                <th>Loại</th>
-                                <th>Mô đun (m)</th>
-                                <th>Số răng</th>
-                                <th>Vật liệu</th>
+                                <th>Nhân hiệu thép</th>
+                                <th>Nhiệt luyện</th>
+                                <th>Kích thước S (Min - Max)</th>
+                                <th>Độ rắn (Min - Max)</th>
+                                <th>Giới hạn bền</th>
+                                <th>Giới hạn chảy</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            <tr>
-                                <td>{Loại}</td>
-                                <td>{Mô đun}</td>
-                                <td>{Số răng}</td>
-                                <td>{Vật liệu}</td>
-                            </tr>
-                            <tr>
-                                <td>{Loại}</td>
-                                <td>{Mô đun}</td>
-                                <td>{Số răng}</td>
-                                <td>{Vật liệu}</td>
-                            </tr>
+                        <tbody id="gearMaterialTable">
+
                         </tbody>
                     </table>
 
                 <?php elseif ($selectedCategory == "oTruc"): ?>
-                    <h4>Ổ trục</h4>
-                    <table class="table table-bordered">
-                        <thead class="table-dark">
-                            <tr>
-                                <th>Loại</th>
-                                <th>Đường kính trong (mm)</th>
-                                <th>Đường kính ngoài (mm)</th>
-                                <th>Chiều rộng (mm)</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>{Loại}</td>
-                                <td>{Đường kính trong}</td>
-                                <td>{Đường kính ngoài}</td>
-                                <td>{Chiều rộng}</td>
-                            </tr>
-                            <tr>
-                                <td>{Loại}</td>
-                                <td>{Đường kính trong}</td>
-                                <td>{Đường kính ngoài}</td>
-                                <td>{Chiều rộng}</td>
-                            </tr>
-                        </tbody>
-                    </table>
+                    
                 <?php endif; ?>
             </main>
         </div>

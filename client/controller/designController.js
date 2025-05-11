@@ -11,7 +11,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
     workspaceCodeDisplay.value = workspaceCode;
 
-    let currentStep = localStorage.getItem("lastStep") ? parseInt(localStorage.getItem("lastStep")) : 1;
+    let currentStep = 0;
+    //let currentStep = localStorage.getItem("lastStep") ? parseInt(localStorage.getItem("lastStep")) : 1;
     let calculationResultsChap2 = [];
     let calculationResultsChap31 = [];
     let calculationResultsChap32 = [];
@@ -114,6 +115,7 @@ document.addEventListener("DOMContentLoaded", function () {
             await redistributeTransmissionRatio();
             await loadBevelGearMaterials();
             await loadShaftGearMaterials();
+            await loadChain();
     
             await new Promise(resolve => setTimeout(resolve, 1000));
     
@@ -128,13 +130,18 @@ document.addEventListener("DOMContentLoaded", function () {
             $calculationModal.find(".modal-footer").show();
     
             $calculationModal.modal("show");
-            showStep();
+
+            if (currentStep > 0) {
+                calculationChain.currentStep = 1;
+                await calculationChain.nextStep();
+            } else {
+                await calculationChain.nextStep();
+            }
     
             await loadEfficiencyData();
             await loadTransmissionRatios();
+            await loadSuitableEngines();
             await loadTriSoViTriBanhRang();
-            await loadBevelGearMaterials();
-            await loadShaftGearMaterials();
         }
     });
 
@@ -146,72 +153,101 @@ document.addEventListener("DOMContentLoaded", function () {
                 headers: { "Content-Type": "application/x-www-form-urlencoded" },
                 body: new URLSearchParams({ action: "get_efficiency" }),
             });
-    
+        
             const data = await response.json();
             if (!data.success) {
                 console.error("Lỗi khi lấy dữ liệu hiệu suất:", data.message);
                 return;
             }
-    
+        
             let efficiencyList = data.data;
             let tableBody = document.getElementById("efficiencyTable");
             let selectedTypes = ["Bộ truyền bánh răng trụ", "Bộ truyền bánh răng côn", "Bộ truyền xích", "Một cặp ổ lăn"];
             let autoMode = document.getElementById("autoCalculationBtn").classList.contains("active");
-    
+
+            const efficiencyNames = {
+                "Một cặp ổ lăn": "ηol",
+                "Bộ truyền bánh răng côn": "ηbrcon",
+                "Bộ truyền bánh răng trụ": "ηbrtru",
+                "Bộ truyền xích": "ηx"
+            };
+        
             let tableContent = "";
-    
-            for (const item of efficiencyList) {
-                if (selectedTypes.includes(item.TenGoi)) {
-                    let minValue = item.HieuSuatDuoccheMin ?? 0;
-                    let maxValue = item.HieuSuatDuoccheMax ?? 1;
-                    let defaultValue = (parseFloat(minValue) + parseFloat(maxValue)) / 2;
-    
-                    if (autoMode) {
-                        await setEfficiencyValue(item.TenGoi, defaultValue);
-                    } else {
-                        tableContent += `
-                            <tr>
-                                <td>${item.TenGoi}</td>
-                                <td>
-                                    <select class="efficiency-mode form-control">
-                                        <option value="che" data-min="${item.HieuSuatDuoccheMin}" data-max="${item.HieuSuatDuoccheMax}" selected>Có che</option>
-                                        <option value="khongche" data-min="${item.HieuSuatDeHoMin}" data-max="${item.HieuSuatDeHoMax}">Không che</option>
-                                    </select>
-                                </td>
-                                <td>
-                                    <input type="range" class="efficiency-slider form-range" min="${minValue}" max="${maxValue}" step="0.001" value="${defaultValue}">
-                                </td>
-                                <td class="efficiency-value">${defaultValue.toFixed(3)}</td>
-                            </tr>
-                        `;
+        
+                for (const item of efficiencyList) {
+                    if (selectedTypes.includes(item.TenGoi)) {
+                        let minValue = item.HieuSuatDuoccheMin ?? 0;
+                        let maxValue = item.HieuSuatDuoccheMax ?? 1;
+                        let defaultValue = (parseFloat(minValue) + parseFloat(maxValue)) / 2;
+        
+                        if (autoMode) {
+                            await setEfficiencyValue(item.TenGoi, defaultValue);
+                        } else {
+                            tableContent += `
+                                <tr>
+                                    <td>${item.TenGoi}</td>
+                                    <td>
+                                        <select class="efficiency-mode form-control">
+                                            <option value="che" data-min="${item.HieuSuatDuoccheMin}" data-max="${item.HieuSuatDuoccheMax}" selected>Có che</option>
+                                            <option value="khongche" data-min="${item.HieuSuatDeHoMin}" data-max="${item.HieuSuatDeHoMax}">Không che</option>
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <input type="range" class="efficiency-slider form-range" min="${minValue}" max="${maxValue}" step="0.001" value="${defaultValue}">
+                                    </td>
+                                    <td class="efficiency-value">${defaultValue.toFixed(3)}</td>
+                                </tr>
+                            `;
+
+                            let shortName = efficiencyNames[item.TenGoi] || "η";
+                            let calculatedValue = item.TenGoi === "Một cặp ổ lăn" ? Math.pow(defaultValue, 3) : defaultValue;
+                            calculationResultsChap2.push({ name: shortName, data: calculatedValue.toFixed(3) });
+                        }
                     }
                 }
-            }
-    
-            if (!autoMode) {
-                tableBody.innerHTML = tableContent;
-    
-                document.querySelectorAll(".efficiency-mode").forEach(select => {
-                    select.addEventListener("change", function () {
-                        let selected = this.options[this.selectedIndex];
-                        let row = this.closest("tr");
-                        let minValue = selected.dataset.min ?? 0;
-                        let maxValue = selected.dataset.max ?? 1;
-                        let defaultValue = (parseFloat(minValue) + parseFloat(maxValue)) / 2;
-    
-                        let slider = row.querySelector(".efficiency-slider");
-                        let valueDisplay = row.querySelector(".efficiency-value");
-    
-                        slider.min = minValue;
-                        slider.max = maxValue;
-                        slider.value = defaultValue;
-                        valueDisplay.textContent = defaultValue.toFixed(3);
+        
+                if (!autoMode) {
+                    tableBody.innerHTML = tableContent;
+        
+                    document.querySelectorAll(".efficiency-mode").forEach(select => {
+                        select.addEventListener("change", function () {
+                            let selected = this.options[this.selectedIndex];
+                            let row = this.closest("tr");
+                            let minValue = selected.dataset.min ?? 0;
+                            let maxValue = selected.dataset.max ?? 1;
+                            let defaultValue = (parseFloat(minValue) + parseFloat(maxValue)) / 2;
+        
+                            let slider = row.querySelector(".efficiency-slider");
+                            let valueDisplay = row.querySelector(".efficiency-value");
+        
+                            slider.min = minValue;
+                            slider.max = maxValue;
+                            slider.value = defaultValue;
+                            valueDisplay.textContent = defaultValue.toFixed(3);
+                        });
                     });
-                });
-    
+        
                 document.querySelectorAll(".efficiency-slider").forEach(slider => {
                     slider.addEventListener("input", function () {
-                        this.closest("tr").querySelector(".efficiency-value").textContent = parseFloat(this.value).toFixed(3);
+                        let row = this.closest("tr");
+                        let type = row.querySelector("td:first-child").textContent.trim();
+                        let value = parseFloat(this.value);
+                        let valueDisplay = row.querySelector(".efficiency-value");
+
+                        valueDisplay.textContent = value.toFixed(3);
+
+                        if (type === "Một cặp ổ lăn") {
+                            value = Math.pow(value, 3);
+                        }
+
+                        let shortName = efficiencyNames[type] || "η";
+
+                        let existingEntry = calculationResultsChap2.find(entry => entry.name === shortName);
+                        if (existingEntry) {
+                            existingEntry.data = value.toFixed(3);
+                        } else {
+                            calculationResultsChap2.push({ name: shortName, data: value.toFixed(3) });
+                        }
                     });
                 });
             }
@@ -247,25 +283,32 @@ document.addEventListener("DOMContentLoaded", function () {
         try {
             const response = await fetch("api.php?action=getTransmissionRatios");
             const data = await response.json();
-    
+
             if (!data.success) {
                 console.error("Không lấy được dữ liệu tỉ số truyền:", data.message);
                 return;
             }
-    
+
             let transmissionList = data.data;
             let tableBody = $("#transmissionTableBody");
             tableBody.empty();
-    
+
             let selectedTypes = ["Truyền động bánh răng côn Hộp giảm tốc côn - trụ 2 cấp", "Truyền động Xích"];
             let autoMode = $("#autoCalculationBtn").hasClass("active");
-    
+
+            const ratioNames = {
+                "Truyền động bánh răng côn Hộp giảm tốc côn - trụ 2 cấp": "uhgt",
+                "Truyền động Xích": "ux"
+            };
+
             transmissionList.forEach(item => {
                 if (selectedTypes.includes(item.LoaiTruyen)) {
                     let minValue = item.TisoTruyenMin ?? 0;
                     let maxValue = item.TisoTruyenMax ?? 1;
                     let defaultValue = (parseFloat(minValue) + parseFloat(maxValue) / 2) / 2;
-    
+
+                    let shortName = ratioNames[item.LoaiTruyen] || "i";
+
                     if (autoMode) {
                         setTransmissionRatio(item.LoaiTruyen, defaultValue);
                     } else {
@@ -276,22 +319,39 @@ document.addEventListener("DOMContentLoaded", function () {
                                 <td>
                                     <input type="range" class="transmission-slider form-range" min="${minValue}" max="${maxValue}" step="0.1" value="${defaultValue}">
                                 </td>
-                                <td class="selected-value text-center">${defaultValue}</td>
+                                <td class="selected-value text-center">${defaultValue.toFixed(1)}</td>
                             </tr>
                         `);
-    
+
                         tableBody.append(row);
+
+                        // ⬇ Thêm giá trị mặc định vào calculationResultsChap2
+                        calculationResultsChap2.push({
+                            name: shortName,
+                            data: defaultValue.toFixed(1)
+                        });
                     }
                 }
             });
-    
+
             if (!autoMode) {
                 $(".transmission-slider").on("input", function () {
-                    let value = $(this).val();
-                    $(this).closest("tr").find(".selected-value").text(parseFloat(value).toFixed(1));
+                    let value = parseFloat($(this).val()).toFixed(1);
+                    let row = $(this).closest("tr");
+                    row.find(".selected-value").text(value);
+
+                    let type = row.find("td:first").text().trim();
+                    let shortName = ratioNames[type] || "i";
+
+                    let existingEntry = calculationResultsChap2.find(entry => entry.name === shortName);
+                    if (existingEntry) {
+                        existingEntry.data = value;
+                    } else {
+                        calculationResultsChap2.push({ name: shortName, data: value });
+                    }
                 });
             }
-    
+
         } catch (error) {
             console.error("Lỗi khi kết nối server:", error);
         }
@@ -364,10 +424,13 @@ document.addEventListener("DOMContentLoaded", function () {
                 tableBody.append(row);
             });
     
-            if (isAuto && suitableEngines.length > 0) {
-                let selectedEngine = suitableEngines[0];
-                updateSelectedEngine(selectedEngine);
+            if (!isAuto && suitableEngines.length > 0) {
+                let firstRadio = $("input[name='selectedEngine']").first();
+                firstRadio.prop("checked", true).trigger("change");
             }
+
+            let selectedEngine = suitableEngines[0];
+            updateSelectedEngine(selectedEngine);
     
             $("input[name='selectedEngine']").on("change", function () {
                 let selectedEngine = $(this).data("engine");
@@ -435,7 +498,7 @@ document.addEventListener("DOMContentLoaded", function () {
             tableBody.innerHTML = "";
     
             parameters.forEach(param => {
-                let defaultValue = ((param.min + param.max) / 2).toFixed(3);
+                let defaultValue = ((param.min + param.max) / 2).toFixed(3);    
     
                 let row = `
                     <tr>
@@ -489,38 +552,14 @@ document.addEventListener("DOMContentLoaded", function () {
             "Bộ truyền bánh răng trụ": "ηbrtru",
             "Bộ truyền xích": "ηx"
         };
-    
-        let autoMode = $("#autoCalculationBtn").hasClass("active");
-    
-        if (autoMode) {
-            Object.values(efficiencyNames).forEach(shortName => {
-                let entry = calculationResultsChap2.find(e => e.name === shortName);
-                if (entry) {
-                    let efficiency = parseFloat(entry.data);
-                    totalEfficiency *= efficiency;
-                }
-            });
-        } else {
-            $("#efficiencyTable tr").each(function () {
-                let type = $(this).find("td:first").text().trim();
-                let efficiency = parseFloat($(this).find(".efficiency-slider").val());
-    
-                if (type === "Một cặp ổ lăn") {
-                    efficiency = Math.pow(efficiency, 3);
-                }
-    
-                let shortName = efficiencyNames[type] || "η";
-    
-                let existingEntry = calculationResultsChap2.find(entry => entry.name === shortName);
-                if (existingEntry) {
-                    existingEntry.data = efficiency.toFixed(3);
-                } else {
-                    calculationResultsChap2.push({ name: shortName, data: efficiency.toFixed(3) });
-                }
-    
+
+        Object.values(efficiencyNames).forEach(shortName => {
+            let entry = calculationResultsChap2.find(e => e.name === shortName);
+            if (entry) {
+                let efficiency = parseFloat(entry.data);
                 totalEfficiency *= efficiency;
-            });
-        }
+            }
+        });
     
         Pct /= totalEfficiency;
     
@@ -937,7 +976,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 
                     tableBody1.append(row);
                 });
-                
+
                 $(document).on("change", "input[name='gearMaterial']", function () {
                     let selectedMaterial = $(this).data("material");
 
@@ -1019,16 +1058,15 @@ document.addEventListener("DOMContentLoaded", function () {
                         $(document).on("change", "input[name='gearMaterial1']", function () {
                             selectedMaterial = $(this).data("material");
                             selectedDrivenMaterial = selectedMaterial;
+
+                            calculateBevel (selectedLeadMaterial, selectedDrivenMaterial);
                         });
-                        
-                        calculateBevel (selectedLeadMaterial, selectedDrivenMaterial);
                     }
                 });
             } 
-
-            calculateBevel (selectedLeadMaterial, selectedDrivenMaterial);
-            
-            
+            else {
+                calculateBevel (selectedLeadMaterial, selectedDrivenMaterial);
+            }
         } catch (error) {
             console.error("Lỗi khi tải dữ liệu vật liệu:", error);
         }
@@ -1426,9 +1464,13 @@ document.addEventListener("DOMContentLoaded", function () {
     
             const materials = data.materials;
             let autoMode = $("#autoCalculationBtn").hasClass("active");
-            let tableBody = $("#shaftGearMaterial");
-    
-            if (!autoMode) tableBody.empty();
+            const tableBody1 = $("#shaftGearMaterial");
+            const tableBody2 = $("#shaftGearMaterial2");
+
+            if (!autoMode) {
+                tableBody1.empty();
+                tableBody2.empty();
+            }
     
             let selectedDrivenMaterial = null;
             let selectedLeadMaterial = null;
@@ -1461,366 +1503,867 @@ document.addEventListener("DOMContentLoaded", function () {
                 }, null);
             }
             //task 3.2.1
-
-            //task 3.2.2 - 3.2.6
-            
-                let leadGearResults = [
-                    { name: "Vật liệu bánh răng dẫn răng trục", data: selectedLeadMaterial.NhanHieuThep },
-                    { name: "Nhiệt luyện bánh răng dẫn răng trục", data: selectedLeadMaterial.NhietLuyen },
-                    { name: "Kích thước bánh răng dẫn răng trục", data: getMiddleValue(selectedLeadMaterial.KichThuocS_Min, selectedLeadMaterial.KichThuocS_Max) + " mm" },
-                    { name: "Giới hạn bền bánh răng dẫn răng trục", data: getMiddleValue(selectedLeadMaterial.GioiHanBenMin, selectedLeadMaterial.GioiHanBenMax) + " MPa" },
-                    { name: "Giới hạn chảy bánh răng dẫn răng trục", data: (selectedLeadMaterial.GioiHanChay || "N/A") + " MPa" },
-                    { name: "Độ cứng HB bánh răng dẫn răng trục", data: selectedLeadMaterial.HB }
-                ];
+            if (!autoMode) {
+                materials.forEach((material, index) => {
+                    let row = $(`
+                        <tr>
+                            <td>${material.NhanHieuThep || 'N/A'}</td>
+                            <td>${material.NhietLuyen || 'N/A'}</td>
+                            <td>${
+                                material.KichThuocS_Min && material.KichThuocS_Max
+                                    ? `${material.KichThuocS_Min} - ${material.KichThuocS_Max}`
+                                    : material.KichThuocS_Min
+                                    ? `${material.KichThuocS_Min}`
+                                    : material.KichThuocS_Max
+                                    ? `- ${material.KichThuocS_Max}`
+                                    : 'N/A'
+                            }</td>
+                            <td>${
+                                material.DoRanMin && material.DoRanMax
+                                    ? `${material.DoRanMin} - ${material.DoRanMax}`
+                                    : material.DoRanMin
+                                    ? `${material.DoRanMin}`
+                                    : material.DoRanMax
+                                    ? `- ${material.DoRanMax}`
+                                    : 'N/A'
+                            }</td>
+                            <td>${
+                                material.GioiHanBenMin && material.GioiHanBenMax
+                                    ? `${material.GioiHanBenMin} - ${material.GioiHanBenMax}`
+                                    : material.GioiHanBenMin
+                                    ? `${material.GioiHanBenMin}`
+                                    : material.GioiHanBenMax
+                                    ? `- ${material.GioiHanBenMax}`
+                                    : 'N/A'
+                            }</td>
+                            <td>${material.GioiHanChay || 'N/A'}</td>
+                            <td class="text-center">
+                                <input type="radio" name="gearMaterial" value="${material._customId}" data-material='${JSON.stringify(material)}' ${autoMode && index === 0 ? "checked" : ""}>
+                            </td>
+                        </tr>
+                    `);
                 
-                let drivenGearResults = [
-                    { name: "Vật liệu bánh răng bị dẫn răng trục", data: selectedDrivenMaterial.NhanHieuThep },
-                    { name: "Nhiệt luyện bánh răng bị dẫn răng trục", data: selectedDrivenMaterial.NhietLuyen },
-                    { name: "Kích thước bánh răng bị dẫn răng trục", data: getMiddleValue(selectedDrivenMaterial.KichThuocS_Min, selectedDrivenMaterial.KichThuocS_Max) + " mm" },
-                    { name: "Giới hạn bền bánh răng bị dẫn răng trục", data: getMiddleValue(selectedDrivenMaterial.GioiHanBenMin, selectedDrivenMaterial.GioiHanBenMax) + " MPa" },
-                    { name: "Giới hạn chảy bánh răng bị dẫn răng trục", data: (selectedDrivenMaterial.GioiHanChay || "N/A") + " MPa" },
-                    { name: "Độ cứng HB bánh răng bị dẫn răng trục", data: selectedDrivenMaterial.HB }
-                ];
+                    tableBody1.append(row);
+                });
                 
-                let σHlim1 = 2 * selectedLeadMaterial.HB + 70;
-                let σHlim2 = 2 * selectedDrivenMaterial.HB + 70;
-                let σFlim1 = 1.8 * selectedLeadMaterial.HB;
-                let σFlim2 = 1.8 * selectedDrivenMaterial.HB;
-                let Sh = 1.1;
-                let Sf = 1.75;
+                $(document).on("change", "input[name='gearMaterial']", function () {
+                    let selectedMaterial = $(this).data("material");
 
-                let values = await calculateBoardValues();
+                    if (selectedMaterial) {
+                        const HB = getMiddleValue(selectedMaterial.DoRanMin, selectedMaterial.DoRanMax, true);
+                        selectedMaterial = { ...selectedMaterial, HB: parseFloat(HB) };
 
-                let NHO1 = 30 * Math.pow(selectedLeadMaterial.HB, 2.4);
-                let NHO2 = 30 * Math.pow(selectedDrivenMaterial.HB, 2.4);
-                let NFO = 4 * Math.pow(10, 6);
-                let NHE1 = 60 * values.n1 * 1 * L * 300 * 2 * 8;
-                let NFE1 = NHE1;
-                let NHE2 = NHE1 / values.u1;
-                let NFE2 = NHE2;
-                let KHL1 = Math.pow(NHO1 / NHE1, 1/6);
-                let KHL2 = Math.pow(NHO2 / NHE2, 1/6);
-                if(NHE1 > NHO1 && NHE2 > NHO2){
-                    KHL1 = 1;
-                    KHL2 = 1;
-                }
-                let KFL1 = Math.pow(NFO / NFE1, 1/6);
-                let KFL2 = Math.pow(NFO / NFE2, 1/6);
-                if(NFE1 > NFO && NFE2 > NFO){
-                    KFL1 = 1;
-                    KFL2 = 1;
-                }
-                let σH1 = σHlim1 * (1 / Sh);
-                let σH2 = σHlim2 * (1 / Sh);
-                let σH = Math.min(σH1, σH2);
-                let σHMax1 = 2.8 * selectedLeadMaterial.GioiHanChay;
-                let σHMax2 = 2.8 * selectedDrivenMaterial.GioiHanChay;
-                let σF1 = σFlim1 * (KFL1 / Sf);
-                let σF2 = σFlim2 * (KFL2 / Sf);
-                let σFMax1 = 0.8 * selectedLeadMaterial.GioiHanChay;
-                let σFMax2 = 0.8 * selectedDrivenMaterial.GioiHanChay;
-            
-                let Ka = 49.5;
-                let Kd = 77;
-                let Zm = 274;
+                        selectedLeadMaterial = selectedMaterial;
 
-                let ψba = calculationResultsChap2.find(item => item.name === "ψba")?.data || NaN;
-                let ψbd = 0.53 * ψba * (values.u2 + 1);
+                        let suitableMaterials = materials.filter(material => {
+                            const HBMin = convertHardness(material.DoRanMin);
+                            const HBMax = convertHardness(material.DoRanMax);
 
-                let KHβ, KFβ;
+                            return (
+                                (HBMin >= (HB + 10) && HBMin <= (HB + 15)) || 
+                                (HBMax >= (HB + 10) && HBMax <= (HB + 15)) ||
+                                (HBMin <= (HB + 10) && HBMax >= (HB + 15))
+                            );
+                        });
 
-                if (ψbd < 0.2) {
-                    if (selectedLeadMaterial.HB > 350) {
-                        KHβ = 1.02;
-                        KFβ = 1.03;
-                    } else {
-                        KHβ = 1.01;
-                        KFβ = 1.02;
+                        let updatedMaterials = suitableMaterials.map(material => {
+                            const HBMin = convertHardness(material.DoRanMin);
+                            const HBMax = convertHardness(material.DoRanMax);
+                        
+                            const validMinHB = Math.max(HBMin, parseFloat(HB) + 10);
+                            const validMaxHB = Math.min(HBMax, parseFloat(HB) + 15);
+
+                            if (validMinHB <= validMaxHB) {
+                                return {
+                                    ...material,
+                                    HB: parseFloat(validMinHB)
+                                };
+                            }
+                            return material;
+                        });
+
+                        updatedMaterials.forEach((material, index) => {
+                            let row = $(`
+                                <tr>
+                                    <td>${material.NhanHieuThep || 'N/A'}</td>
+                                    <td>${material.NhietLuyen || 'N/A'}</td>
+                                    <td>${
+                                        material.KichThuocS_Min && material.KichThuocS_Max
+                                            ? `${material.KichThuocS_Min} - ${material.KichThuocS_Max}`
+                                            : material.KichThuocS_Min
+                                            ? `${material.KichThuocS_Min}`
+                                            : material.KichThuocS_Max
+                                            ? `- ${material.KichThuocS_Max}`
+                                            : 'N/A'
+                                    }</td>
+                                    <td>${
+                                        material.DoRanMin && material.DoRanMax
+                                            ? `${material.DoRanMin} - ${material.DoRanMax}`
+                                            : material.DoRanMin
+                                            ? `${material.DoRanMin}`
+                                            : material.DoRanMax
+                                            ? `- ${material.DoRanMax}`
+                                            : 'N/A'
+                                    }</td>
+                                    <td>${
+                                        material.GioiHanBenMin && material.GioiHanBenMax
+                                            ? `${material.GioiHanBenMin} - ${material.GioiHanBenMax}`
+                                            : material.GioiHanBenMin
+                                            ? `${material.GioiHanBenMin}`
+                                            : material.GioiHanBenMax
+                                            ? `- ${material.GioiHanBenMax}`
+                                            : 'N/A'
+                                    }</td>
+                                    <td>${material.GioiHanChay || 'N/A'}</td>
+                                    <td class="text-center">
+                                        <input type="radio" name="gearMaterial1" value="${material._customId}" data-material='${JSON.stringify(material)}' ${autoMode && index === 0 ? "checked" : ""}>
+                                    </td>
+                                </tr>
+                            `);
+                        
+                            tableBody2.append(row);
+                        });
+
+                        $(document).on("change", "input[name='gearMaterial1']", function () {
+                            selectedMaterial = $(this).data("material");
+                            selectedDrivenMaterial = selectedMaterial;
+
+                            calculateShaft (selectedLeadMaterial, selectedDrivenMaterial);
+                        });
                     }
-                } else if (ψbd < 0.4) {
-                    if (selectedLeadMaterial.HB > 350) {
-                        KHβ = 1.05;
-                        KFβ = 1.10;
-                    } else {
-                        KHβ = 1.02;
-                        KFβ = 1.05;
-                    }
-                } else if (ψbd < 0.6) {
-                    if (selectedLeadMaterial.HB > 350) {
-                        KHβ = 1.08;
-                        KFβ = 1.12;
-                    } else {
-                        KHβ = 1.03;
-                        KFβ = 1.08;
-                    }
-                } else if (ψbd < 0.8) {
-                    if (selectedLeadMaterial.HB > 350) {
-                        KHβ = 1.14;
-                        KFβ = 1.20;
-                    } else {
-                        KHβ = 1.05;
-                        KFβ = 1.12;
-                    }
-                } else if (ψbd < 1) {
-                    if (selectedLeadMaterial.HB > 350) {
-                        KHβ = 1.19;
-                        KFβ = 1.28;
-                    } else {
-                        KHβ = 1.07;
-                        KFβ = 1.16;
-                    }
-                } else if (ψbd < 1.2) {
-                    if (selectedLeadMaterial.HB > 350) {
-                        KHβ = 1.25;
-                        KFβ = 1.41;
-                    } else {
-                        KHβ = 1.10;
-                        KFβ = 1.22;
-                    }
-                } else if (ψbd < 1.4) {
-                    if (selectedLeadMaterial.HB > 350) {
-                        KHβ = 1.31;
-                        KFβ = 1.53;
-                    } else {
-                        KHβ = 1.13;
-                        KFβ = 1.28;
-                    }
-                } else {
-                    if (selectedLeadMaterial.HB > 350) {
-                        KHβ = null;
-                        KFβ = null;
-                    } else {
-                        KHβ = 1.16;
-                        KFβ = 1.26;
-                    }
-                }
-                
-                let aw = Ka * (values.u2 + 1) * Math.pow((values.T2 * KHβ) / (ψba * values.u2 * Math.pow(σH, 2)) , 1/3);
-                let dw = Kd * Math.pow((values.T2 * KHβ * (values.u2 + 1)) / (ψba * values.u2 * Math.pow(σH, 2)) , 1/3);
-                
-                let m = aw * 0.015;
-                const mStandardValues = [1, 1.25, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10, 12];
-                let closest = mStandardValues[0];
+                });
+            }
+            else {
+                 
+            }
 
-                let minDiff = Math.abs(m - closest);
-
-                for (let i = 1; i < mStandardValues.length; i++) {
-                    const diff = Math.abs(m - mStandardValues[i]);
-                    if (diff < minDiff) {
-                        minDiff = diff;
-                        closest = mStandardValues[i];
-                    }
-                }
-
-                m = closest;
-
-                let z1 = ((2 * aw) / (m * (values.u2 + 1))).toFixed(0);
-                let z2 = (z1 * values.u2).toFixed(0);
-                
-                aw = (m * (parseInt(z1) + parseInt(z2))) / 2;
-                let newu2 =  parseInt(z2) / parseInt(z1);
-                
-                let x1, x2;
-                if (z1 >= 21) {
-                    x1 = 0;
-                    x2 = 0;
-                } else if (14 <= z1 <= 20 && newu2 >= 3.5){
-                    x1 = 0.3;
-                    x2 = -0.3;
-                } else {
-                    x1 = 0.5;
-                    x2 = 0.5;
-                }
-
-                let kx = ((1000 * (x1 + x2)) / (z1 + z2));
-
-                const kyTable = {
-                    0: 0,
-                    1: 0.008,  2: 0.032,  3: 0.063,  4: 0.114,  5: 0.178,
-                    6: 0.243,  7: 0.318,  8: 0.410,  9: 0.510,  10: 0.622,
-                    11: 0.740, 12: 0.870, 13: 1.000, 14: 1.145, 15: 1.295,
-                    16: 1.450, 17: 1.622, 18: 1.792, 19: 1.985, 20: 2.160,
-                    21: 2.340, 22: 2.530, 23: 2.742, 24: 2.940, 25: 3.155,
-                    26: 3.380, 27: 3.605, 28: 3.835, 29: 4.065, 30: 4.290,
-                    31: 4.540, 32: 4.785, 33: 5.030, 34: 5.280, 35: 5.520,
-                    36: 5.790, 37: 6.050, 38: 6.315, 39: 6.585, 40: 6.860,
-                    41: 7.140, 42: 7.420, 43: 7.700, 44: 8.000, 45: 8.290,
-                    46: 8.590, 47: 8.885, 48: 9.175, 49: 9.460, 50: 9.765
-                };
-
-                let ky = kyTable[parseInt(kx)]
-                let Δy = parseInt(ky) * (z1 + z2) / 1000;
-
-                let h = 2.25 * m - Δy * m;
-                let c = 0.25 * m;
-                let p = m / 3;
-                aw = m * (0.5 * (parseInt(z1) + parseInt(z2) + (x1 + x2) - Δy))
-                let d1 = m * parseInt(z1);
-                let d2 = m * parseInt(z2);
-                let dw1 = d1 + d1 * (2 / (parseInt(z1) + parseInt(z2)))
-                let dw2 = dw1 * newu2;
-                let da1 = d1 + 2 * (1 + x1 - Δy) * m;
-                let da2 = d2 + 2 * (1 + x2 - Δy) * m;
-                let df1 = d1 - (2.5 - 2 * x1) * m;
-                let df2 = d2 - (2.5 - 2 * x2) * m;
-                let α = 20;
-                let αtw = Math.acos(((0.5 * m * (parseInt(z1) + parseInt(z2))) * Math.cos(α)) / aw);
-
-                let bw2 = ψba * aw;
-                let bw1 = bw2 + 5;
-                let zv1 = z1;
-                let zv2 = z2;
-                let YF1 = 3.47 + 13.2 / zv1;
-                let YF2 = 3.47 + 13.2 / zv2;
-                let δF = 0.016;
-                let g0;
-                if (m <= 3.55) {
-                    g0 = 47;
-                } 
-                else if(m <= 10) {
-                    g0 = 53;
-                }
-                else {
-                    g0 = 64;
-                }
-
-                let v = (Math.PI * dw1 * values.n2) / 6000
-                let vf = δF * g0 * v * Math.pow(aw / newu2 , 1/2);
-                let Kfv = 1 + (vf * bw2 * dw1)/(2 * values.T2 * KFβ * 1);
-                let Kf = KFβ * 1 * Kfv;
-                let εα = 1.88 - 3.2 * (1 / parseInt(z1) + 1 / parseInt(z2));
-                let Yε = 1 / εα;
-                let σF1_ = (2 * values.T1 * Kf * Yε * 1 * YF1) / (0.85 * bw1 * dw1 * m)
-                let σF2_ = (σF1_ * YF1) / YF2;
-                let FT1 = (2 * values.T1) / d1;
-                let FT2 = FT1;
-                let Fr1 = FT1 * Math.tan(αtw);
-                let Fa2 = 0;
-                let Fr2 = FT2 * Math.tan(αtw);
-                let Fa1 = 0;
-                
-                let otherResults = [
-                    { name: "σHlim1", data: σHlim1.toFixed(4) },
-                    { name: "σHlim2", data: σHlim2.toFixed(4) },
-                    { name: "σFlim1", data: σFlim1.toFixed(4) },
-                    { name: "σFlim2", data: σFlim2.toFixed(4) },
-                    { name: "Sh", data: Sh.toFixed(4) },
-                    { name: "Sf", data: Sf.toFixed(4) },
-                    { name: "NHO1", data: NHO1.toFixed(4) },
-                    { name: "NHO2", data: NHO2.toFixed(4) },
-                    { name: "NFO", data: NFO.toFixed(4) },
-                    { name: "NHE1", data: NHE1.toFixed(4) },
-                    { name: "NFE1", data: NFE1.toFixed(4) },
-                    { name: "NHE2", data: NHE2.toFixed(4) },
-                    { name: "NFE2", data: NFE2.toFixed(4) },
-                    { name: "KHL1", data: KHL1.toFixed(4) },
-                    { name: "KHL2", data: KHL2.toFixed(4) },
-                    { name: "KFL1", data: KFL1.toFixed(4) },
-                    { name: "KFL2", data: KFL2.toFixed(4) },
-                    { name: "σH1", data: σH1.toFixed(4) },
-                    { name: "σH2", data: σH2.toFixed(4) },
-                    { name: "σH", data: σH.toFixed(4) },
-                    { name: "σHMax1", data: σHMax1.toFixed(4) },
-                    { name: "σHMax2", data: σHMax2.toFixed(4) },
-                    { name: "[σF1]", data: σF1.toFixed(4) },
-                    { name: "[σF2]", data: σF2.toFixed(4) },
-                    { name: "σFMax1", data: σFMax1.toFixed(4) },
-                    { name: "σFMax2", data: σFMax2.toFixed(4) },
-                    { name: "Ka", data: Ka.toFixed(4) },
-                    { name: "Kd", data: Kd.toFixed(4) },
-                    { name: "ψba", data: ψba },
-                    { name: "ψbd", data: ψbd.toFixed(4) },
-                    { name: "KHβ", data: KHβ.toFixed(4) },
-                    { name: "KHβ", data: KHβ.toFixed(4) },
-                    { name: "KFβ", data: KFβ.toFixed(4) },
-                    { name: "aw", data: aw.toFixed(4) },
-                    { name: "dw", data: dw.toFixed(4) },
-                    { name: "x1", data: x1.toFixed(4) },
-                    { name: "x2", data: x2.toFixed(4) },
-                    { name: "dw", data: dw.toFixed(4) },
-                    { name: "m", data: m.toFixed(4) },
-                    { name: "z1", data: z1 },
-                    { name: "z2", data: z2 },
-                    { name: "x1", data: x1.toFixed(4) },
-                    { name: "x2", data: x2.toFixed(4) },
-                    { name: "kx", data: kx},
-                    { name: "ky", data: ky },
-                    { name: "Δy", data: Δy.toFixed(4) },
-                    { name: "bw1", data: bw1.toFixed(4)},
-                    { name: "bw2", data: bw2.toFixed(4)},
-                    { name: "zv1", data: zv1},
-                    { name: "zv2", data: zv2},
-                    { name: "YF1", data: YF1.toFixed(4)},
-                    { name: "YF2", data: YF2.toFixed(4)},
-                    { name: "δF", data: δF.toFixed(4)},
-                    { name: "g0", data: g0.toFixed(4)},
-                    { name: "v", data: v.toFixed(4)},
-                    { name: "vf", data: vf.toFixed(4)},
-                    { name: "Kfv", data: Kfv.toFixed(4)},
-                    { name: "Kf", data: Kf.toFixed(4)},
-                    { name: "εα", data: εα.toFixed(4)},
-                    { name: "Yε", data: Yε.toFixed(4)},
-                    { name: "σF1", data: σF1_.toFixed(4)},
-                    { name: "σF2", data: σF2_.toFixed(4)},
-                    { name: "FT1", data: FT1.toFixed(4)},
-                    { name: "FT2", data: FT2.toFixed(4)},
-                    { name: "Fr1", data: Fr1.toFixed(4)},
-                    { name: "Fr2", data: Fr2.toFixed(4)},
-                    { name: "Fa1", data: Fa1.toFixed(4)},
-                    { name: "Fa2", data: Fa2.toFixed(4)},
-                ];   
-
-                leadGearResults = [
-                    ...leadGearResults,
-                    { name: "Số Răng", data: z1 },
-                    { name: "Modun", data: m.toFixed(4) },
-                    { name: "Tỉ số truyền", data: newu2.toFixed(4) },
-                    { name: "Chiều cao răng", data: h.toFixed(4) },
-                    { name: "Khe hở dường kính", data: c.toFixed(4) },
-                    { name: "Bán kính lượng chân răng", data: p.toFixed(4) },
-                    { name: "Hệ số dịch chỉnh", data: x1.toFixed(4) },
-                    { name: "Khoảng cách trục", data: aw.toFixed(4) },
-                    { name: "Đường kính chia", data: d1.toFixed(4) },
-                    { name: "Đường kính lăn", data: dw1.toFixed(4) },
-                    { name: "Đường kính đỉnh răng", data: da1.toFixed(4) },
-                    { name: "Đường kính đáy răng", data: df1.toFixed(4) },
-                    { name: "Góc biên dạng", data: α.toFixed(4) },
-                    { name: "Đường kính cơ sở", data: (d1 * Math.cos(α)).toFixed(4) },
-                    { name: "Góc profin răng", data: α.toFixed(4) },
-                    { name: "Góc ăn khớp", data: αtw.toFixed(4) },
-                ];
-
-                drivenGearResults = [
-                    ...drivenGearResults,
-                    { name: "Số Răng", data: z2 },
-                    { name: "Modun", data: m.toFixed(4) },
-                    { name: "Tỉ số truyền", data: newu2.toFixed(4) },
-                    { name: "Chiều cao răng", data: h.toFixed(4) },
-                    { name: "Khe hở dường kính", data: c.toFixed(4) },
-                    { name: "Bán kính lượng chân răng", data: p.toFixed(4) },
-                    { name: "Hệ số dịch chỉnh", data: x2.toFixed(4) },
-                    { name: "Khoảng cách trục", data: aw.toFixed(4) },
-                    { name: "Đường kính chia", data: d2.toFixed(4) },
-                    { name: "Đường kính lăn", data: dw2.toFixed(4) },
-                    { name: "Đường kính đỉnh răng", data: da2.toFixed(4) },
-                    { name: "Đường kính đáy răng", data: df2.toFixed(4) },
-                    { name: "Góc biên dạng", data: α.toFixed(4) },
-                    { name: "Đường kính cơ sở", data: (d2 * Math.cos(α)).toFixed(4) },
-                    { name: "Góc profin răng", data: α.toFixed(4) },
-                    { name: "Góc ăn khớp", data: αtw.toFixed(4) },
-                ]
-            
-                calculationResultsChap32 = [leadGearResults, drivenGearResults, otherResults];
-        
-                displayResultsChap32();
-            
+            calculateShaft (selectedLeadMaterial, selectedDrivenMaterial)
         } catch (error) {
             console.error("Lỗi khi tải dữ liệu vật liệu:", error);
         }
     }
 
-    async function loadChain() {
+    //task 3.2.2 - 3.2.6
+    async function calculateShaft(selectedLeadMaterial, selectedDrivenMaterial){
+        
+        let leadGearResults = [
+            { name: "Vật liệu bánh răng dẫn răng trục", data: selectedLeadMaterial.NhanHieuThep },
+            { name: "Nhiệt luyện bánh răng dẫn răng trục", data: selectedLeadMaterial.NhietLuyen },
+            { name: "Kích thước bánh răng dẫn răng trục", data: getMiddleValue(selectedLeadMaterial.KichThuocS_Min, selectedLeadMaterial.KichThuocS_Max) + " mm" },
+            { name: "Giới hạn bền bánh răng dẫn răng trục", data: getMiddleValue(selectedLeadMaterial.GioiHanBenMin, selectedLeadMaterial.GioiHanBenMax) + " MPa" },
+            { name: "Giới hạn chảy bánh răng dẫn răng trục", data: (selectedLeadMaterial.GioiHanChay || "N/A") + " MPa" },
+            { name: "Độ cứng HB bánh răng dẫn răng trục", data: selectedLeadMaterial.HB }
+        ];
+        
+        let drivenGearResults = [
+            { name: "Vật liệu bánh răng bị dẫn răng trục", data: selectedDrivenMaterial.NhanHieuThep },
+            { name: "Nhiệt luyện bánh răng bị dẫn răng trục", data: selectedDrivenMaterial.NhietLuyen },
+            { name: "Kích thước bánh răng bị dẫn răng trục", data: getMiddleValue(selectedDrivenMaterial.KichThuocS_Min, selectedDrivenMaterial.KichThuocS_Max) + " mm" },
+            { name: "Giới hạn bền bánh răng bị dẫn răng trục", data: getMiddleValue(selectedDrivenMaterial.GioiHanBenMin, selectedDrivenMaterial.GioiHanBenMax) + " MPa" },
+            { name: "Giới hạn chảy bánh răng bị dẫn răng trục", data: (selectedDrivenMaterial.GioiHanChay || "N/A") + " MPa" },
+            { name: "Độ cứng HB bánh răng bị dẫn răng trục", data: selectedDrivenMaterial.HB }
+        ];
+        
+        let σHlim1 = 2 * selectedLeadMaterial.HB + 70;
+        let σHlim2 = 2 * selectedDrivenMaterial.HB + 70;
+        let σFlim1 = 1.8 * selectedLeadMaterial.HB;
+        let σFlim2 = 1.8 * selectedDrivenMaterial.HB;
+        let Sh = 1.1;
+        let Sf = 1.75;
 
+        let values = await calculateBoardValues();
+
+        let NHO1 = 30 * Math.pow(selectedLeadMaterial.HB, 2.4);
+        let NHO2 = 30 * Math.pow(selectedDrivenMaterial.HB, 2.4);
+        let NFO = 4 * Math.pow(10, 6);
+        let NHE1 = 60 * values.n1 * 1 * L * 300 * 2 * 8;
+        let NFE1 = NHE1;
+        let NHE2 = NHE1 / values.u1;
+        let NFE2 = NHE2;
+        let KHL1 = Math.pow(NHO1 / NHE1, 1/6);
+        let KHL2 = Math.pow(NHO2 / NHE2, 1/6);
+        if(NHE1 > NHO1 && NHE2 > NHO2){
+            KHL1 = 1;
+            KHL2 = 1;
+        }
+        let KFL1 = Math.pow(NFO / NFE1, 1/6);
+        let KFL2 = Math.pow(NFO / NFE2, 1/6);
+        if(NFE1 > NFO && NFE2 > NFO){
+            KFL1 = 1;
+            KFL2 = 1;
+        }
+        let σH1 = σHlim1 * (1 / Sh);
+        let σH2 = σHlim2 * (1 / Sh);
+        let σH = Math.min(σH1, σH2);
+        let σHMax1 = 2.8 * selectedLeadMaterial.GioiHanChay;
+        let σHMax2 = 2.8 * selectedDrivenMaterial.GioiHanChay;
+        let σF1 = σFlim1 * (KFL1 / Sf);
+        let σF2 = σFlim2 * (KFL2 / Sf);
+        let σFMax1 = 0.8 * selectedLeadMaterial.GioiHanChay;
+        let σFMax2 = 0.8 * selectedDrivenMaterial.GioiHanChay;
+    
+        let Ka = 49.5;
+        let Kd = 77;
+        let Zm = 274;
+
+        let ψba = calculationResultsChap2.find(item => item.name === "ψba")?.data || NaN;
+        let ψbd = 0.53 * ψba * (values.u2 + 1);
+
+        let KHβ, KFβ;
+
+        if (ψbd < 0.2) {
+            if (selectedLeadMaterial.HB > 350) {
+                KHβ = 1.02;
+                KFβ = 1.03;
+            } else {
+                KHβ = 1.01;
+                KFβ = 1.02;
+            }
+        } else if (ψbd < 0.4) {
+            if (selectedLeadMaterial.HB > 350) {
+                KHβ = 1.05;
+                KFβ = 1.10;
+            } else {
+                KHβ = 1.02;
+                KFβ = 1.05;
+            }
+        } else if (ψbd < 0.6) {
+            if (selectedLeadMaterial.HB > 350) {
+                KHβ = 1.08;
+                KFβ = 1.12;
+            } else {
+                KHβ = 1.03;
+                KFβ = 1.08;
+            }
+        } else if (ψbd < 0.8) {
+            if (selectedLeadMaterial.HB > 350) {
+                KHβ = 1.14;
+                KFβ = 1.20;
+            } else {
+                KHβ = 1.05;
+                KFβ = 1.12;
+            }
+        } else if (ψbd < 1) {
+            if (selectedLeadMaterial.HB > 350) {
+                KHβ = 1.19;
+                KFβ = 1.28;
+            } else {
+                KHβ = 1.07;
+                KFβ = 1.16;
+            }
+        } else if (ψbd < 1.2) {
+            if (selectedLeadMaterial.HB > 350) {
+                KHβ = 1.25;
+                KFβ = 1.41;
+            } else {
+                KHβ = 1.10;
+                KFβ = 1.22;
+            }
+        } else if (ψbd < 1.4) {
+            if (selectedLeadMaterial.HB > 350) {
+                KHβ = 1.31;
+                KFβ = 1.53;
+            } else {
+                KHβ = 1.13;
+                KFβ = 1.28;
+            }
+        } else {
+            if (selectedLeadMaterial.HB > 350) {
+                KHβ = null;
+                KFβ = null;
+            } else {
+                KHβ = 1.16;
+                KFβ = 1.26;
+            }
+        }
+        
+        let aw = Ka * (values.u2 + 1) * Math.pow((values.T2 * KHβ) / (ψba * values.u2 * Math.pow(σH, 2)) , 1/3);
+        let dw = Kd * Math.pow((values.T2 * KHβ * (values.u2 + 1)) / (ψba * values.u2 * Math.pow(σH, 2)) , 1/3);
+        
+        let m = aw * 0.015;
+        const mStandardValues = [1, 1.25, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10, 12];
+        let closest = mStandardValues[0];
+
+        let minDiff = Math.abs(m - closest);
+
+        for (let i = 1; i < mStandardValues.length; i++) {
+            const diff = Math.abs(m - mStandardValues[i]);
+            if (diff < minDiff) {
+                minDiff = diff;
+                closest = mStandardValues[i];
+            }
+        }
+
+        m = closest;
+
+        let z1 = ((2 * aw) / (m * (values.u2 + 1))).toFixed(0);
+        let z2 = (z1 * values.u2).toFixed(0);
+        
+        aw = (m * (parseInt(z1) + parseInt(z2))) / 2;
+        let newu2 =  parseInt(z2) / parseInt(z1);
+        
+        let x1, x2;
+        if (z1 >= 21) {
+            x1 = 0;
+            x2 = 0;
+        } else if (14 <= z1 <= 20 && newu2 >= 3.5){
+            x1 = 0.3;
+            x2 = -0.3;
+        } else {
+            x1 = 0.5;
+            x2 = 0.5;
+        }
+
+        let kx = ((1000 * (x1 + x2)) / (z1 + z2));
+
+        const kyTable = {
+            0: 0,
+            1: 0.008,  2: 0.032,  3: 0.063,  4: 0.114,  5: 0.178,
+            6: 0.243,  7: 0.318,  8: 0.410,  9: 0.510,  10: 0.622,
+            11: 0.740, 12: 0.870, 13: 1.000, 14: 1.145, 15: 1.295,
+            16: 1.450, 17: 1.622, 18: 1.792, 19: 1.985, 20: 2.160,
+            21: 2.340, 22: 2.530, 23: 2.742, 24: 2.940, 25: 3.155,
+            26: 3.380, 27: 3.605, 28: 3.835, 29: 4.065, 30: 4.290,
+            31: 4.540, 32: 4.785, 33: 5.030, 34: 5.280, 35: 5.520,
+            36: 5.790, 37: 6.050, 38: 6.315, 39: 6.585, 40: 6.860,
+            41: 7.140, 42: 7.420, 43: 7.700, 44: 8.000, 45: 8.290,
+            46: 8.590, 47: 8.885, 48: 9.175, 49: 9.460, 50: 9.765
+        };
+
+        let ky = kyTable[parseInt(kx)]
+        let Δy = parseInt(ky) * (z1 + z2) / 1000;
+
+        let h = 2.25 * m - Δy * m;
+        let c = 0.25 * m;
+        let p = m / 3;
+        aw = m * (0.5 * (parseInt(z1) + parseInt(z2) + (x1 + x2) - Δy))
+        let d1 = m * parseInt(z1);
+        let d2 = m * parseInt(z2);
+        let dw1 = d1 + d1 * (2 / (parseInt(z1) + parseInt(z2)))
+        let dw2 = dw1 * newu2;
+        let da1 = d1 + 2 * (1 + x1 - Δy) * m;
+        let da2 = d2 + 2 * (1 + x2 - Δy) * m;
+        let df1 = d1 - (2.5 - 2 * x1) * m;
+        let df2 = d2 - (2.5 - 2 * x2) * m;
+        let α = 20;
+        let αtw = Math.acos(((0.5 * m * (parseInt(z1) + parseInt(z2))) * Math.cos(α)) / aw);
+
+        let bw2 = ψba * aw;
+        let bw1 = bw2 + 5;
+        let zv1 = z1;
+        let zv2 = z2;
+        let YF1 = 3.47 + 13.2 / zv1;
+        let YF2 = 3.47 + 13.2 / zv2;
+        let δF = 0.016;
+        let g0;
+        if (m <= 3.55) {
+            g0 = 47;
+        } 
+        else if(m <= 10) {
+            g0 = 53;
+        }
+        else {
+            g0 = 64;
+        }
+
+        let v = (Math.PI * dw1 * values.n2) / 6000
+        let vf = δF * g0 * v * Math.pow(aw / newu2 , 1/2);
+        let Kfv = 1 + (vf * bw2 * dw1)/(2 * values.T2 * KFβ * 1);
+        let Kf = KFβ * 1 * Kfv;
+        let εα = 1.88 - 3.2 * (1 / parseInt(z1) + 1 / parseInt(z2));
+        let Yε = 1 / εα;
+        let σF1_ = (2 * values.T1 * Kf * Yε * 1 * YF1) / (0.85 * bw1 * dw1 * m)
+        let σF2_ = (σF1_ * YF1) / YF2;
+        let FT1 = (2 * values.T1) / d1;
+        let FT2 = FT1;
+        let Fr1 = FT1 * Math.tan(αtw);
+        let Fa2 = 0;
+        let Fr2 = FT2 * Math.tan(αtw);
+        let Fa1 = 0;
+        
+        let otherResults = [
+            { name: "σHlim1", data: σHlim1.toFixed(4) },
+            { name: "σHlim2", data: σHlim2.toFixed(4) },
+            { name: "σFlim1", data: σFlim1.toFixed(4) },
+            { name: "σFlim2", data: σFlim2.toFixed(4) },
+            { name: "Sh", data: Sh.toFixed(4) },
+            { name: "Sf", data: Sf.toFixed(4) },
+            { name: "NHO1", data: NHO1.toFixed(4) },
+            { name: "NHO2", data: NHO2.toFixed(4) },
+            { name: "NFO", data: NFO.toFixed(4) },
+            { name: "NHE1", data: NHE1.toFixed(4) },
+            { name: "NFE1", data: NFE1.toFixed(4) },
+            { name: "NHE2", data: NHE2.toFixed(4) },
+            { name: "NFE2", data: NFE2.toFixed(4) },
+            { name: "KHL1", data: KHL1.toFixed(4) },
+            { name: "KHL2", data: KHL2.toFixed(4) },
+            { name: "KFL1", data: KFL1.toFixed(4) },
+            { name: "KFL2", data: KFL2.toFixed(4) },
+            { name: "σH1", data: σH1.toFixed(4) },
+            { name: "σH2", data: σH2.toFixed(4) },
+            { name: "σH", data: σH.toFixed(4) },
+            { name: "σHMax1", data: σHMax1.toFixed(4) },
+            { name: "σHMax2", data: σHMax2.toFixed(4) },
+            { name: "[σF1]", data: σF1.toFixed(4) },
+            { name: "[σF2]", data: σF2.toFixed(4) },
+            { name: "σFMax1", data: σFMax1.toFixed(4) },
+            { name: "σFMax2", data: σFMax2.toFixed(4) },
+            { name: "Ka", data: Ka.toFixed(4) },
+            { name: "Kd", data: Kd.toFixed(4) },
+            { name: "ψba", data: ψba },
+            { name: "ψbd", data: ψbd.toFixed(4) },
+            { name: "KHβ", data: KHβ.toFixed(4) },
+            { name: "KHβ", data: KHβ.toFixed(4) },
+            { name: "KFβ", data: KFβ.toFixed(4) },
+            { name: "aw", data: aw.toFixed(4) },
+            { name: "dw", data: dw.toFixed(4) },
+            { name: "x1", data: x1.toFixed(4) },
+            { name: "x2", data: x2.toFixed(4) },
+            { name: "dw", data: dw.toFixed(4) },
+            { name: "m", data: m.toFixed(4) },
+            { name: "z1", data: z1 },
+            { name: "z2", data: z2 },
+            { name: "x1", data: x1.toFixed(4) },
+            { name: "x2", data: x2.toFixed(4) },
+            { name: "kx", data: kx},
+            { name: "ky", data: ky },
+            { name: "Δy", data: Δy.toFixed(4) },
+            { name: "bw1", data: bw1.toFixed(4)},
+            { name: "bw2", data: bw2.toFixed(4)},
+            { name: "zv1", data: zv1},
+            { name: "zv2", data: zv2},
+            { name: "YF1", data: YF1.toFixed(4)},
+            { name: "YF2", data: YF2.toFixed(4)},
+            { name: "δF", data: δF.toFixed(4)},
+            { name: "g0", data: g0.toFixed(4)},
+            { name: "v", data: v.toFixed(4)},
+            { name: "vf", data: vf.toFixed(4)},
+            { name: "Kfv", data: Kfv.toFixed(4)},
+            { name: "Kf", data: Kf.toFixed(4)},
+            { name: "εα", data: εα.toFixed(4)},
+            { name: "Yε", data: Yε.toFixed(4)},
+            { name: "σF1", data: σF1_.toFixed(4)},
+            { name: "σF2", data: σF2_.toFixed(4)},
+            { name: "FT1", data: FT1.toFixed(4)},
+            { name: "FT2", data: FT2.toFixed(4)},
+            { name: "Fr1", data: Fr1.toFixed(4)},
+            { name: "Fr2", data: Fr2.toFixed(4)},
+            { name: "Fa1", data: Fa1.toFixed(4)},
+            { name: "Fa2", data: Fa2.toFixed(4)},
+        ];   
+
+        leadGearResults = [
+            ...leadGearResults,
+            { name: "Số Răng", data: z1 },
+            { name: "Modun", data: m.toFixed(4) },
+            { name: "Tỉ số truyền", data: newu2.toFixed(4) },
+            { name: "Chiều cao răng", data: h.toFixed(4) },
+            { name: "Khe hở dường kính", data: c.toFixed(4) },
+            { name: "Bán kính lượng chân răng", data: p.toFixed(4) },
+            { name: "Hệ số dịch chỉnh", data: x1.toFixed(4) },
+            { name: "Khoảng cách trục", data: aw.toFixed(4) },
+            { name: "Đường kính chia", data: d1.toFixed(4) },
+            { name: "Đường kính lăn", data: dw1.toFixed(4) },
+            { name: "Đường kính đỉnh răng", data: da1.toFixed(4) },
+            { name: "Đường kính đáy răng", data: df1.toFixed(4) },
+            { name: "Góc biên dạng", data: α.toFixed(4) },
+            { name: "Đường kính cơ sở", data: (d1 * Math.cos(α)).toFixed(4) },
+            { name: "Góc profin răng", data: α.toFixed(4) },
+            { name: "Góc ăn khớp", data: αtw.toFixed(4) },
+        ];
+
+        drivenGearResults = [
+            ...drivenGearResults,
+            { name: "Số Răng", data: z2 },
+            { name: "Modun", data: m.toFixed(4) },
+            { name: "Tỉ số truyền", data: newu2.toFixed(4) },
+            { name: "Chiều cao răng", data: h.toFixed(4) },
+            { name: "Khe hở dường kính", data: c.toFixed(4) },
+            { name: "Bán kính lượng chân răng", data: p.toFixed(4) },
+            { name: "Hệ số dịch chỉnh", data: x2.toFixed(4) },
+            { name: "Khoảng cách trục", data: aw.toFixed(4) },
+            { name: "Đường kính chia", data: d2.toFixed(4) },
+            { name: "Đường kính lăn", data: dw2.toFixed(4) },
+            { name: "Đường kính đỉnh răng", data: da2.toFixed(4) },
+            { name: "Đường kính đáy răng", data: df2.toFixed(4) },
+            { name: "Góc biên dạng", data: α.toFixed(4) },
+            { name: "Đường kính cơ sở", data: (d2 * Math.cos(α)).toFixed(4) },
+            { name: "Góc profin răng", data: α.toFixed(4) },
+            { name: "Góc ăn khớp", data: αtw.toFixed(4) },
+        ]
+    
+        calculationResultsChap32 = [leadGearResults, drivenGearResults, otherResults];
+
+        displayResultsChap32();
+    }
+
+    async function loadChain() {
+        let autoMode = $("#autoCalculationBtn").hasClass("active");
+
+        const conditions = [
+            {
+                label: "Đường nối hai tâm đĩa xích",
+                options: [
+                    { text: "Đến 60°", value: 1 },
+                    { text: "Trên 60°", value: 1.25 }
+                ],
+                shortName: "k0"
+            },
+            {
+                label: "Khoảng cách trục",
+                options: [
+                    { text: "(30 ... 50)p", value: 1 },
+                    { text: "<= 25p", value: 1.25 },
+                    { text: ">= (60 ... 80)p", value: 0.8 }
+                ],
+                shortName: "ka"
+            },
+            {
+                label: "Vị trí trục được điều chỉnh",
+                options: [
+                    { text: "Một trong các đĩa xích", value: 1 },
+                    { text: "Đĩa căng hoặc con lăn căng xích", value: 1.1 },
+                    { text: "Vị trí trục không điều chỉnh được", value: 1.25 }
+                ],
+                shortName: "kdc"
+            },
+            {
+                label: "Tải trọng",
+                options: [
+                    { text: "Tải trọng tĩnh, làm việc êm", value: 1 },
+                    { text: "Tải trọng va đập", value: 1.2 },
+                    { text: "Tải trọng va đập mạnh", value: 1.8 }
+                ],
+                shortName: "kd"
+            },
+            {
+                label: "Làm việc",
+                options: [
+                    { text: "1 ca", value: 1 },
+                    { text: "2 ca", value: 1.25 },
+                    { text: "3 ca", value: 1.45 }
+                ],
+                shortName: "kc"
+            }
+        ];
+
+        const lubricationOptions = {
+            "Không bụi": [{ text: "I", value: 0.8 }, { text: "II", value: 1 }],
+            "Có bụi": [{ text: "II", value: 1 }, { text: "III", value: 3 }],
+            "Bẩn": [{ text: "III", value: 6 }, { text: "IV", value: 6 }]
+        };
+
+        if (!autoMode) {
+            const chainConditionTable = document.getElementById("chainConditionTable");
+            chainConditionTable.innerHTML = "";
+
+            conditions.forEach((condition) => {
+                const row = document.createElement("tr");
+                const conditionCell = document.createElement("td");
+                conditionCell.textContent = condition.label;
+
+                const dropdownCell = document.createElement("td");
+                const dropdown = document.createElement("select");
+                dropdown.className = "efficiency-mode form-control";
+
+                condition.options.forEach(option => {
+                    const opt = document.createElement("option");
+                    opt.textContent = option.text;
+                    opt.value = option.value;
+                    dropdown.appendChild(opt);
+                });
+
+                dropdownCell.appendChild(dropdown);
+                const valueCell = document.createElement("td");
+                valueCell.textContent = dropdown.value;
+
+                dropdown.addEventListener("change", function () {
+                    valueCell.textContent = this.value;
+                    updateTriSoCalculationChap33(condition.shortName, this.value);
+                });
+
+                row.appendChild(conditionCell);
+                row.appendChild(dropdownCell);
+                row.appendChild(valueCell);
+                chainConditionTable.appendChild(row);
+
+                updateTriSoCalculationChap33(condition.shortName, dropdown.value);
+            });
+
+            const row = document.createElement("tr");
+            const envCell = document.createElement("td");
+            envCell.textContent = "Môi trường làm việc và cách bôi trơn";
+
+            const envDropdown = document.createElement("select");
+            envDropdown.className = "efficiency-mode form-control";
+
+            const valueCell = document.createElement("td");
+
+            Object.keys(lubricationOptions).forEach(env => {
+                const opt = document.createElement("option");
+                opt.textContent = env;
+                opt.value = env;
+                envDropdown.appendChild(opt);
+            });
+
+            const lubDropdown = document.createElement("select");
+            lubDropdown.className = "efficiency-mode form-control";
+
+            const sliderRow = document.createElement("tr");
+            const sliderLabel = document.createElement("td");
+            sliderLabel.textContent = "Khoảng cách trục a";
+
+            const sliderCell = document.createElement("td");
+            const slider = document.createElement("input");
+            slider.type = "range";
+            slider.min = 1;
+            slider.max = 10;
+            slider.value = 5;
+            slider.className = "form-range";
+
+            const sliderValue = document.createElement("td");
+            sliderValue.textContent = slider.value;
+
+            envDropdown.addEventListener("change", function () {
+                lubDropdown.innerHTML = "";
+                lubricationOptions[this.value].forEach(option => {
+                    const opt = document.createElement("option");
+                    opt.textContent = option.text;
+                    opt.value = option.value;
+                    lubDropdown.appendChild(opt);
+                });
+                lubDropdown.dispatchEvent(new Event('change'));
+            });
+
+            lubDropdown.addEventListener("change", function () {
+                valueCell.textContent = this.value;
+                updateTriSoCalculationChap33("kbt", this.value);
+            });
+
+            slider.addEventListener("input", function () {
+                sliderValue.textContent = this.value;
+                updateTriSoCalculationChap33("a", this.value);
+            });
+
+            envDropdown.dispatchEvent(new Event('change'));
+
+            row.appendChild(envCell);
+            row.appendChild(envDropdown);
+            row.appendChild(lubDropdown);
+            row.appendChild(valueCell);
+            chainConditionTable.appendChild(row);
+
+            sliderCell.appendChild(slider);
+            sliderRow.appendChild(sliderLabel);
+            sliderRow.appendChild(sliderCell);
+            sliderRow.appendChild(sliderValue);
+
+            chainConditionTable.appendChild(sliderRow);
+
+        } else {
+            conditions.forEach(condition => {
+                updateTriSoCalculationChap33(condition.shortName, condition.options[0].value);
+            });
+            updateTriSoCalculationChap33("kbt", lubricationOptions["Không bụi"][0].value);
+            updateTriSoCalculationChap33("a", 5)
+        }
+    }
+
+    async function calculateChain() {
+        let k0 = getValueByName("k0", 33);
+        let ka = getValueByName("ka", 33);
+        let kdc = getValueByName("kdc", 33);
+        let kd = getValueByName("kd", 33);
+        let kc = getValueByName("kc", 33);
+        let kbt = getValueByName("kbt", 33);
+        let a = getValueByName("a", 33);
+
+        let values = await calculateBoardValues();
+
+        let p, dc, B, P;
+
+        if (values.n3 <= 50) {
+            p = 25.4; dc = 7.95; B = 22.61; P = 3.2;
+        } else if (values.n3 <= 200) {
+            p = 25.4; dc = 7.95; B = 22.61; P = 11.0;
+        } else if (values.n3 <= 400) {
+            p = 25.4; dc = 7.95; B = 22.61; P = 19.0;
+        } else if (values.n3 <= 600) {
+            p = 25.4; dc = 7.95; B = 22.61; P = 25.7;
+        } else if (values.n3 <= 800) {
+            p = 25.4; dc = 7.95; B = 22.61; P = 34.7;
+        } else if (values.n3 <= 1000) {
+            p = 25.4; dc = 7.95; B = 22.61; P = 43.8;
+        } else if (values.n3 <= 1200) {
+            p = 25.4; dc = 7.95; B = 22.61; P = 48.3;
+        } else {
+            p = 25.4; dc = 7.95; B = 22.61; P = 53.5;
+        }
+
+        let z1 = (29 - 2 * values.ux).toFixed(0);
+        let z2 = (values.ux * z1).toFixed(0);
+
+        let kz = 25 / parseInt(z1);
+        let kn = values.n1/values.n3;
+
+        let k = k0 * ka * kdc * kd * kc * kbt;
+        let v = z1 * p * values.n3 / 60000
+
+        let Pt = values.P3 * k * kz * kn;
+        let kv = 1;
+        let Bt = (250 * values.P3 * k * kv / Math.pow(v, 2/3)) / p;
+
+        let b, b1, S, Q, q;
+        let closestDiff = Infinity;
+
+        const chains = [
+            { p: 12.7, b: 13.4, b1: 7, S: 1.5, B: [22.5, 28.5, 34.5, 40.5, 46.5, 52.5], Q: [26, 31, 36, 42, 49, 56], q: [1.3, 1.6, 2.0, 2.3, 2.7, 3.0] },
+            { p: 15.875, b: 16.7, b1: 8.7, S: 2.0, B: [30, 38, 46, 54, 62, 70], Q: [41, 50, 58, 69, 86, 91], q: [2.2, 2.7, 3.3, 3.9, 4.4, 5.0] },
+            { p: 19.05, b: 20.1, b1: 10.5, S: 3.0, B: [45, 57, 69, 81, 93], Q: [74, 89, 105, 124, 143], q: [3.9, 4.9, 5.9, 7.0, 8.0] },
+            { p: 25.4, b: 26.7, b1: 13.35, S: 3.0, B: [57, 75, 93, 104], Q: [116, 132, 164, 196], q: [8.4, 10.8, 13.2, 15.4] },
+            { p: 31.75, b: 33.4, b1: 16.7, S: 3.0, B: [75, 93, 111, 129], Q: [166, 206, 246, 286], q: [14.35, 16.55, 18.8, 21.0] }
+        ];
+
+        chains.forEach(chain => {
+            chain.B.forEach((bValue, index) => {
+                const diff = Math.abs(bValue - Bt);
+                if (diff < closestDiff) {
+                    closestDiff = diff;
+                    p = chain.p;
+                    b = chain.b;
+                    b1 = chain.b1;
+                    S = chain.S;
+                    B = bValue;
+                    Q = chain.Q[index];
+                    q = chain.q[index];
+                }
+            });
+        });
+
+        a *= p ;
+        
+        let x = ((2 * a / p) + ((parseInt(z1) + parseInt(z2)) / 2) + ((Math.pow(parseInt(z2) - parseInt(z1), 2) * p) / (4 * Math.pow(Math.PI, 2) * a))).toFixed(0);
+        let astar = 0.25 * (x - ((parseInt(z1) + parseInt(z2)) / 2) + Math.pow((Math.pow(x - ((parseInt(z1) + parseInt(z2)) / 2) , 2)) - 2 * Math.pow((parseInt(z2) - parseInt(z1)) / Math.PI , 2) , 1/2));
+        a = 0.997 * astar
+
+        let i = (parseInt(z1) * values.n3) / (15 * x);
+
+        let Ft = 1000 * values.P3 / v;
+        let Fv = q * Math.pow(v, 2);
+        let kf = 2;
+        let Fo = 9.81 * kf * q * a;
+        let s = Q / (kd * Ft + Fo + Fv);
+
+        let d1 = p / Math.sin(Math.PI / parseInt(z1));
+        let d2 = p / Math.sin(Math.PI / parseInt(z2));
+
+        let da1 = p * (0.5 + 1 / Math.tan(Math.PI / parseInt(z1)));
+        let da2 = p * (0.5 + 1 / Math.tan(Math.PI / parseInt(z2)));
+
+        let dl = 39.68;
+        let r = 0.5025 * dl + 0.05;
+        let df1 = d1 - 2 * r;
+        let df2 = d2 - 2 * r;
+
+        let E = 2.1 * Math.pow(10, 5);
+
+        const pToA = {
+            8: 11,
+            9.525: 28,
+            12.7: 39.6,
+            15.875: 51.5,
+            19.05: 106,
+            25.4: 180,
+            31.75: 262,
+            38.1: 395,
+            44.45: 473,
+            50.8: 645
+        };
+
+        let A;
+
+        if (p in pToA) {
+            A = pToA[p];
+        }
+
+        let kr;
+
+        if (parseInt(z1) < 15) kr = 0.59;
+        else if (parseInt(z1) < 20) kr = 0.48;
+        else if (parseInt(z1) < 30) kr = 0.36;
+        else if (parseInt(z1) < 40) kr = 0.29;
+        else if (parseInt(z1) < 50) kr = 0.24;
+        else kr = 0.22;
+
+        let σH1 = 0.47 * Math.pow((kr * E * (Ft * kd + 13 * Math.pow(10, -7))) / (A) , 1/2)
+        let Fr = 1.15 * Ft;
+        let F2 = Fo + Fv;
+        let F1 = F2 + Ft;
+        let y = Math.atan((d2 - d1) / a)
+        let Frx = Math.pow(Math.pow(F1 , 2) + Math.pow(F2 , 2) + 2 * F1 * F2 * Math.cos(2*y), 1/2); 
+        let phi = Math.acos((F1 * Math.cos(y) + F2 * Math.cos(y)) / Frx)
+
+        let boardResult = [
+            { name: "Số răng đĩa xích dẫn (z1)", data: z1 },
+            { name: "Số bánh răng bị dẫn (z2)", data: z2 },
+            { name: "Bước xích (p) (mm)", data: p },
+            { name: "Chiều dài ống lót (B) (mm)", data: B },
+            { name: "Đường kính chốt (dc)", data: dc },
+            { name: "Số mắt xích (x)", data: x },
+            { name: "Khoảng cách trục (a)", data: a },
+            { name: "Đường kính vòng chia đĩa dẫn (mm)", data: df1 },
+            { name: "Đường kính vòng chia đĩa bị dẫn (mm)", data: df2 },
+            { name: "Lực tác dụng lên trục", data: Ft }
+        ]
+
+        let otherResults = [
+            { name: "z1", data: z1 },
+            { name: "z2", data: z2 },
+            { name: "k", data: k },
+            { name: "kz", data: kz.toFixed(4) },
+            { name: "kn", data: kn.toFixed(4) },
+            { name: "Pt", data: Pt.toFixed(4) },
+            { name: "v", data: v.toFixed(4) },
+            { name: "kv", data: kv.toFixed(4) },
+            { name: "Bt", data: Bt.toFixed(4) },
+            { name: "x", data: x },
+            { name: "a*", data: astar.toFixed(4) },
+            { name: "a", data: a.toFixed(4) },
+            { name: "i", data: i.toFixed(4) },
+            { name: "Ft", data: Ft.toFixed(4) },
+            { name: "Fv", data: Fv.toFixed(4) },
+            { name: "Fo", data: Fo.toFixed(4) },
+            { name: "Pt", data: Pt.toFixed(4) },
+            { name: "s", data: s.toFixed(4) },
+            { name: "d1", data: d1.toFixed(4) },
+            { name: "d2", data: d2.toFixed(4) },
+            { name: "da1", data: da1.toFixed(4) },
+            { name: "da2", data: da2.toFixed(4) },
+            { name: "df1", data: df1.toFixed(4) },
+            { name: "df2", data: df2.toFixed(4) },
+            { name: "σH1", data: σH1.toFixed(4) }, 
+            { name: "Fr", data: Fr.toFixed(4) },
+            { name: "F1", data: F1.toFixed(4) },  
+            { name: "F2", data: F2.toFixed(4) },  
+            { name: "y", data: y.toFixed(4) },  
+            { name: "Frx", data: Frx.toFixed(4) },  
+            { name: "phi", data: phi.toFixed(4) },  
+        ]
+
+        calculationResultsChap33 = [boardResult, otherResults];
+        displayResultsChap33()
+    }
+
+
+    async function updateTriSoCalculationChap33(name, value) {
+        let existingEntry = calculationResultsChap33.find(entry => entry.name === name);
+        if (existingEntry) {
+            existingEntry.data = value;
+        } else {
+            calculationResultsChap33.push({ name, data: value });
+        }
+
+        await calculateChain();
     }
 
     //display ket qua cho 3.1 (done)
@@ -2024,18 +2567,95 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }     
 
-    //display ket qua cho 3.3 (wip)
-    function displayResultsChap33(){
+    //display ket qua cho 3.3 (done)
+    function displayResultsChap33() {
         const resultSection = document.querySelector("#tab4 > div");
         resultSection.innerHTML = "";
 
-        if (!calculationResultsChap32 || calculationResultsChap32.length === 0) {
+        if (!calculationResultsChap33 || calculationResultsChap33.length === 0) {
             const noResultsMessage = document.createElement("div");
             noResultsMessage.className = "alert alert-warning";
             noResultsMessage.textContent = "Bạn chưa tính bước này";
             resultSection.appendChild(noResultsMessage);
             return;
         }
+
+        const flatResults = [...calculationResultsChap33[0], ...calculationResultsChap33[1]];
+        let index = 10;
+
+        function appendItem(name, data) {
+            const item = document.createElement("div");
+            item.className = "p-2 mb-2";
+            item.innerHTML = `<strong>${name}</strong>: ${data}`;
+            resultSection.appendChild(item);
+        }
+    
+        function appendTitle(title) {
+            const titleDiv = document.createElement("div");
+            titleDiv.className = "fw-bold mt-3";
+            titleDiv.textContent = title;
+            resultSection.appendChild(titleDiv);
+        }
+    
+        function appendItems(count) {
+            for (let i = 0; i < count && index < flatResults.length; i++, index++) {
+                appendItem(flatResults[index].name, flatResults[index].data);
+            }
+        }
+        
+        appendTitle("Ta có số răng của 2 đĩa nhỏ - lớn tương ứng là:");
+        appendItems(2);
+
+        appendTitle("Với các điều kiện sử dụng xích đã lựa chọn, ta có hệ hệ điều kiện sử dụng xích:");
+        appendItems(1);
+
+        appendTitle("Hệ số răng đĩa xích và hệ số vòng quay:");
+        appendItems(2);
+
+        appendTitle("Khi đó công suất tính toán là:");
+        appendItems(1);
+
+        appendTitle("Ta có vận tốc vòng và hệ số vận tốc:");
+        appendItems(2);
+
+        appendTitle("Tính được:");
+        appendItems(1);
+
+        appendTitle("Ta có số mắt xích là:");
+        appendItems(1);
+
+        appendTitle("Khoảng cách trục chính xác là:");
+        appendItems(1);
+
+        appendTitle("Điều chỉnh để xích không chịu áp lực quá lớn:");
+        appendItems(1);
+
+        appendTitle("Số lần va đập của bản lề xích trong 1 giây:");
+        appendItems(1);
+
+        appendTitle("Các hệ số để tính toán hệ số an toàn:");
+        appendItems(4);
+
+        appendTitle("Hệ số an toàn của xích là:");
+        appendItems(1);
+
+        appendTitle("Các chỉ số về đường kính đĩa xích:");
+        appendItems(6);
+
+        appendTitle("Chỉ số kiểm nghiệm độ bền xích:");
+        appendItems(1);
+
+        appendTitle("Các lực tác dộng lên bộ truyền xích:");
+        appendItems(3);
+
+        appendTitle("Góc hợp bởi lực F1 và F2:");
+        appendItems(1);
+
+        appendTitle("Hợp lực của 2 lực căng trên bộ truyền:");
+        appendItems(1);
+
+        appendTitle("Góc bởi hợp lực với trục nối tâm:");
+        appendItems(1);
     }
 
     //display ket qua cho 4 (wip)
@@ -2052,20 +2672,26 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
     
-    function getValueByName(name) {
-        let item = calculationResultsChap2.find((e) => e.name === name);
+    function getValueByName(name, chap) {
+        let item;
+        if (chap == 2) {
+            item = calculationResultsChap2.find((e) => e.name === name);
+        }
+        else if (chap == 33) {
+            item = calculationResultsChap33.find((e) => e.name === name);
+        }
         return item ? parseFloat(item.data) : null;
     }
     
     async function calculateBoardValues() {
-        let ηbrcon = getValueByName("ηbrcon");
-        let ηbrtru = getValueByName("ηbrtru");
-        let ηx = getValueByName("ηx");
-        let ηol = getValueByName("ηol");
-        let Pct = getValueByName("Pct");
-        let u1 = getValueByName("u1");
-        let u2 = getValueByName("u2");
-        let ux = getValueByName("ux");
+        let ηbrcon = getValueByName("ηbrcon", 2);
+        let ηbrtru = getValueByName("ηbrtru", 2);
+        let ηx = getValueByName("ηx", 2);
+        let ηol = getValueByName("ηol", 2);
+        let Pct = getValueByName("Pct", 2);
+        let u1 = getValueByName("u1", 2);
+        let u2 = getValueByName("u2", 2);
+        let ux = getValueByName("ux", 2);
         
         if ([ηbrcon, ηbrtru, ηx, ηol, Pct, u1, u2, ux].includes(null)) {
             console.error("Thiếu thông số cần thiết!");
@@ -2172,43 +2798,85 @@ document.addEventListener("DOMContentLoaded", function () {
         boardTable.appendChild(torqueRow);
     }
 
-    //Xuat pdf (broken for now)
+    //Xuat pdf
     document.getElementById("exportPdf").addEventListener("click", function () {
         exportToPDF();
     });
     
-    function exportToPDF() {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-    
-        doc.setFontSize(16);
-        doc.text("Thông số tính toán cho lựa chọn động cơ", 10, 10);
-    
-        let etaBrCon = parseFloat(calculationResultsChap2.find(item => item.name === 'ηbrcon')?.data || 1);
-        let etaBrTru = parseFloat(calculationResultsChap2.find(item => item.name === 'ηbrtru')?.data || 1);
-        let etaX = parseFloat(calculationResultsChap2.find(item => item.name === 'ηx')?.data || 1);
-        let etaOl = parseFloat(calculationResultsChap2.find(item => item.name === 'ηol')?.data || 1);
-        let etaKn = 1;
-    
-        let etaHe = etaBrCon * etaBrTru * etaX * Math.pow(etaOl, 3) * etaKn;
-        let Pct = parseFloat(P) / etaHe;
-    
-        let y = 20;
-        doc.setFontSize(12);
-        calculationResultsChap2.forEach((item) => {
-            if (item.name === 'η hệ') {
-                doc.text(`${item.name}: ${etaHe.toFixed(3)}`, 10, y);
-            } else if (item.name === 'Pct') {
-                doc.text(`${item.name}: ${Pct.toFixed(3)}`, 10, y);
-            } else {
-                doc.text(`${item.name}: ${item.data}`, 10, y);
-            }
-            y += 7;
-        });
-    
-        doc.save("thong_so_tinh_toan.pdf");
+    async function exportToPDF() {
+        const tab1 = document.getElementById("tab1");
+        const tab2 = document.getElementById("tab2");
+        const tab3 = document.getElementById("tab3");
+        const tab4 = document.getElementById("tab4");
+        const boardModalBody = document.querySelector("#boardModal .modal-body");
+        const coneGearTable = document.getElementById("coneGear").cloneNode(true);
+        const cylinderGearTable = document.getElementById("cylinderGear").cloneNode(true);
+        const chainDriveTable = document.getElementById("chainDrive").cloneNode(true);
+
+        const opt = {
+            margin: 0.5,
+            filename: 'Ket-Qua.pdf',
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2 },
+            jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+        };
+
+        const container = document.createElement('div');
+        document.body.appendChild(container);
+
+        // Tab 1
+        const content1 = tab1.querySelector('div').cloneNode(true);
+        container.appendChild(content1);
+        const break1 = document.createElement('div');
+        break1.style.pageBreakAfter = 'always';
+        container.appendChild(break1);
+
+        const boardTitle = document.createElement('h5');
+        boardTitle.innerHTML = "<i>Bảng phân phối thông số</i>";
+        container.appendChild(boardTitle);
+        const boardContent = boardModalBody.cloneNode(true);
+        container.appendChild(boardContent);
+        const breakBoard = document.createElement('div');
+        breakBoard.style.pageBreakAfter = 'always';
+        container.appendChild(breakBoard);
+
+        // Tab 2
+        const content2 = tab2.querySelector('div').cloneNode(true);
+        container.appendChild(content2);
+        const break2 = document.createElement('div');
+
+        const boardTitleConeGear = document.createElement('h5');
+        container.appendChild(boardTitleConeGear);
+        container.appendChild(coneGearTable);
+
+        break2.style.pageBreakAfter = 'always';
+        container.appendChild(break2);
+
+        // Tab 3
+        const content3 = tab3.querySelector('div').cloneNode(true);
+        container.appendChild(content3);
+        const break3 = document.createElement('div');
+
+        const boardTitleCylinderGear = document.createElement('h5');
+        container.appendChild(boardTitleCylinderGear);
+        container.appendChild(cylinderGearTable);
+
+        break3.style.pageBreakAfter = 'always';
+        container.appendChild(break3);
+
+        // Tab 4
+        const content4 = tab4.querySelector('div').cloneNode(true);
+        container.appendChild(content4);
+
+        const boardTitleChainDrive = document.createElement('h5');
+        container.appendChild(boardTitleChainDrive);
+        container.appendChild(chainDriveTable);
+
+        await html2pdf().set(opt).from(container).save();
+
+        container.remove();
     }
-    
+
     //function support de hien thi linh kien o 3.1.5 va 3.2.4 (3.3.3 wip)
     async function populateNumberBoardTable() {
         var boards = document.getElementsByClassName('board-table');
@@ -2261,6 +2929,20 @@ document.addEventListener("DOMContentLoaded", function () {
     
         var chainDriveTableBody = document.querySelector('#chainDrive table tbody');
         chainDriveTableBody.innerHTML = "";
+        for (var i = 0; i < calculationResultsChap33[0].length; i++) {
+            var row = document.createElement('tr');
+    
+            var nameCell = document.createElement('td');
+            nameCell.textContent = calculationResultsChap33[0][i].name;
+            row.appendChild(nameCell);
+    
+            var dataCell = document.createElement('td');
+            dataCell.textContent = calculationResultsChap33[0][i].data;
+            row.appendChild(dataCell);
+    
+            chainDriveTableBody.appendChild(row);
+        }
+
         document.getElementById('chainDrive').style.display = 'none';
     }  
 
@@ -2275,28 +2957,151 @@ document.addEventListener("DOMContentLoaded", function () {
         populateNumberBoardTable()
         new bootstrap.Modal(document.getElementById("numberBoardModal")).show();
     });
+
+    class CalculationStep {
+        constructor() {
+            this.nextStep = null;
+        }
+
+        setNext(step) {
+            this.nextStep = step;
+            return step;
+        }
+
+        async handle(currentStep) {
+            if (this.nextStep) {
+                await this.nextStep.handle(currentStep);
+            }
+        }
+    }
+
+    // Step Handlers (Mỗi bước trong chuỗi)
+    class CalculateSystemEfficiencyStep extends CalculationStep {
+        async handle(currentStep) {
+            if (currentStep === 1) {
+                await calculateSystemEfficiency();
+            }
+            await super.handle(currentStep);
+        }
+    }
+
+    class CalculatePreliminaryRPMStep extends CalculationStep {
+        async handle(currentStep) {
+            if (currentStep === 2) {
+                await calculatePreliminaryRPM();
+            }
+            await super.handle(currentStep);
+        }
+    }
+
+    class LoadSuitableEnginesStep extends CalculationStep {
+        async handle(currentStep) {
+            if (currentStep === 3) {
+                await loadSuitableEngines();
+            }
+            await super.handle(currentStep);
+        }
+    }
+
+    class RedistributeTransmissionRatioStep extends CalculationStep {
+        async handle(currentStep) {
+            if (currentStep === 4) {
+                await redistributeTransmissionRatio();
+            }
+            await super.handle(currentStep);
+        }
+    }
+
+    class LoadBevelGearMaterialsStep extends CalculationStep {
+        async handle(currentStep) {
+            if (currentStep === 5) {
+                await loadBevelGearMaterials();
+            }
+            await super.handle(currentStep);
+        }
+    }
+
+    class LoadShaftGearMaterialsStep extends CalculationStep {
+        async handle(currentStep) {
+            if (currentStep === 7) {
+                await loadShaftGearMaterials();
+            }
+            await super.handle(currentStep);
+        }
+    }
+
+    class LoadChainStep extends CalculationStep {
+        async handle(currentStep) {
+            if (currentStep === 9) {
+                await loadChain();
+            }
+            await super.handle(currentStep);
+        }
+    }
+
+    // Calculation Chain Manager
+    class CalculationChain {
+        constructor() {
+            this.setupChain();
+        }
+
+        setupChain() {
+            const step1 = new CalculateSystemEfficiencyStep();
+            const step2 = new CalculatePreliminaryRPMStep();
+            const step3 = new LoadSuitableEnginesStep();
+            const step4 = new RedistributeTransmissionRatioStep();
+            const step5 = new LoadBevelGearMaterialsStep();
+            const step7 = new LoadShaftGearMaterialsStep();
+            const step9 = new LoadChainStep();
+
+            step1.setNext(step2)
+                .setNext(step3)
+                .setNext(step4)
+                .setNext(step5)
+                .setNext(step7)
+                .setNext(step9);
+
+            this.chain = step1;
+        }
+
+        async nextStep() {
+            await this.chain.handle(currentStep + 1); //handle cho load
+            if (currentStep != 5 && currentStep != 7)
+            {
+                await this.chain.handle(currentStep); //handle cho tính toán
+            }
+            currentStep++;
+            showStep(currentStep);
+            console.log("Sang bước: ", currentStep)
+            localStorage.setItem("lastStep", currentStep);
+        }
+
+        async prevStep() {
+            if (currentStep > 1) {
+                currentStep--;
+                showStep(currentStep);
+            }
+        }
+    }
+
+    // Initialize Calculation Chain
+    const calculationChain = new CalculationChain();
     
     //function linh tinh support cho chuyen buoc
-    $("#nextStep").click(function () {
-        calculateSystemEfficiency();
-        calculatePreliminaryRPM();
-        loadSuitableEngines();
-        redistributeTransmissionRatio();
-        showStep(++currentStep);
-        localStorage.setItem("lastStep", currentStep);
+    $("#nextStep").click(async function () {
+        await calculationChain.nextStep();
     });
 
-    $("#prevStep").on("click", function () {
-        if (currentStep > 1) {
-            currentStep--;
-            showStep(currentStep);
-        }
+    $("#prevStep").on("click", async function () {
+        await calculationChain.prevStep();
     });
 
-    function showStep() {
+
+    function showStep(step) {
         $(".calculation-step").addClass("d-none");
-        $("#step" + currentStep).removeClass("d-none");
-        $("#prevStep").prop("disabled", currentStep === 1);
+        $("#step" + step).removeClass("d-none");
+        $("#prevStep").prop("disabled", step === 1);
+        $("#nextStep").prop("disabled", step === 10);
     }
 
     document.getElementById("autoCalculationBtn").addEventListener("click", function() {
@@ -2304,6 +3109,6 @@ document.addEventListener("DOMContentLoaded", function () {
     });
     
 
-    //remaining task: history, fix pdf, 3.2.1, 3.3, 4
+    //remaining task: history
 });
 

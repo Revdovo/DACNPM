@@ -16,7 +16,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     }
 
     try {
-        // Check if email already exists
         $stmt = $pdo->prepare("SELECT id FROM users WHERE email = ?");
         $stmt->execute([$email]);
         if ($stmt->fetch()) {
@@ -24,13 +23,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             exit();
         }
 
-        // Hash password
         $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
 
-        // Insert new user
-        $stmt = $pdo->prepare("INSERT INTO users (name, email, password) VALUES (?, ?, ?)");
-        if ($stmt->execute([$name, $email, $hashedPassword])) {
-            $_SESSION["user"] = ["name" => $name, "email" => $email];
+        $stmt = $pdo->prepare("INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)");
+        if ($stmt->execute([$name, $email, $hashedPassword, 'user'])) {
+            $_SESSION["user"] = ["name" => $name, "email" => $email, "role" => "user"];
             echo json_encode(["success" => true, "message" => "Đăng ký thành công!"]);
         } else {
             echo json_encode(["success" => false, "message" => "Lỗi đăng ký!"]);

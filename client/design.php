@@ -17,10 +17,10 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script> 
 
     <!-- Thêm thư viện jsPDF -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/3.0.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>  
 
     <!-- Controllers -->
-    
     <script src="controller/designController.js" defer></script>
     <script src="controller/3dModelController.js" defer></script>
 
@@ -28,10 +28,8 @@
 <body>
     <?php include 'components/header.php'; ?>
 
-    <!-- Main Layout -->
     <div class="container-fluid">
         <div class="row h-100">
-            <!-- Sidebar -->
             <aside class="col-3 sidebar d-flex flex-column">
                 <section class="mb-3 text-center">
                     <h3 class="text-white">Mã Workspace</h3>
@@ -64,16 +62,17 @@
                         <button class="btn btn-outline-light" id="exportPdf">
                             <i class="bi bi-file-earmark-pdf"></i> Xuất PDF
                         </button>
+                        <!--
                         <button class="btn btn-outline-light" id="viewHistory">
                             <i class="bi bi-clock-history"></i> Lịch sử
                         </button>
+                        -->
                     </div>
                 </section>
             </aside>
 
             <!-- 3D Canvas -->
             <main class="col-6 canvas-container position-relative" id="canvas-container">
-                <!-- Dropdown để chọn tab -->
                 <div class="mb-3 w-50" id="tabSelectorContainer">
                     <label for="resultSelector" class="form-label">Chọn mục kết quả:</label>
                     <select id="resultSelector" class="form-select">
@@ -81,10 +80,8 @@
                         <option value="tab2">Thiết kế bộ truyền bánh răng côn</option>
                         <option value="tab3">Thiết kế bộ truyền bánh răng trụ</option>
                         <option value="tab4">Thiết kế bộ truyền xích</option>
-                        <option value="tab5">Thiết kế trụ</option>
                     </select>
 
-                    <!-- Nút Ẩn/Hiện cột kết quả -->
                     <button id="toggleResultBtn" class="btn btn-primary mt-2 w-100">Hiện kết quả</button>
 
                     <button id="boardModel" class="btn btn-primary mt-2 w-100" data-bs-toggle="modal" data-bs-target="#boardModal">

@@ -34,8 +34,19 @@ CREATE TABLE CalculationHistory (
     id INT PRIMARY KEY AUTO_INCREMENT,
     date DATE NOT NULL,
     workspace_id INT NOT NULL,
-    
-    CONSTRAINT FK_CalculationHistory_Workspace FOREIGN KEY (workspace_id) REFERENCES Workspace(id) ON DELETE CASCADE
+    step INT NOT NULL,
+
+    array1 JSON NOT NULL,
+    array2 JSON NOT NULL,
+    array3 JSON NOT NULL,
+    array4 JSON NOT NULL,
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT FK_CalculationHistory_Workspace 
+        FOREIGN KEY (workspace_id) 
+        REFERENCES Workspace(id) 
+        ON DELETE CASCADE
 );
 
 CREATE INDEX idx_workspace_code ON Workspace(code);

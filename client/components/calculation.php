@@ -7,11 +7,10 @@
                 <h5 class="modal-title">Tính Toán Hệ Thống</h5>
             </div>
 
-            <!-- Nội dung modal có thanh cuộn khi cần -->
             <div class="modal-body flex-grow-1 overflow-auto">
                 <div id="step1" class="calculation-step d-none">
                     <h5>Bước 1a: Chọn hiệu suất của từng bộ truyền</h5>
-                    <div class="table-responsive" style="height: 80vh; overflow-y: auto;">
+                    <div class="table-responsive" style="height: 50vh; overflow-y: auto;">
                         <table class="table">
                             <thead>
                                 <tr>
@@ -28,7 +27,7 @@
 
                 <div id="step2" class="calculation-step d-none">
                     <h5>Bước 1b: Xác định số vòng quay sơ bộ</h5>
-                    <div class="table-responsive" style="height: 80vh; overflow-y: auto;">
+                    <div class="table-responsive" style="height: 50vh; overflow-y: auto;">
                         <table class="table">
                             <thead>
                                 <tr>
@@ -39,7 +38,7 @@
                                 </tr>
                             </thead>
                             <tbody id="transmissionTableBody">
-                                <!-- Nội dung sẽ được cập nhật bằng JavaScript -->
+
                             </tbody>
                         </table>
                     </div>
@@ -47,7 +46,7 @@
 
                 <div id="step3" class="calculation-step d-none">
                     <h5>Bước 1c: Chọn động cơ phù hợp</h5>
-                    <div class="table-responsive" style="height: 80vh; overflow-y: auto;">
+                    <div class="table-responsive" style="height: 50vh; overflow-y: auto;">
                         <table class="table">
                             <thead>
                                 <tr>
@@ -59,7 +58,7 @@
                                 </tr>
                             </thead>
                             <tbody id="engineSelectionTableBody">
-                                <!-- Nội dung sẽ được cập nhật bằng JavaScript -->
+
                             </tbody>
                         </table>
                     </div>
@@ -67,7 +66,7 @@
 
                 <div id="step4" class="calculation-step d-none">
                     <h5>Bước 1d: Phân phối lại tỉ số truyền thật sự</h5>
-                    <div class="table-responsive" style="height: 80vh; overflow-y: auto;">
+                    <div class="table-responsive" style="height: 50vh; overflow-y: auto;">
                         <table class="table">
                             <thead>
                                 <tr>
@@ -83,10 +82,9 @@
                     </div>
                 </div>
 
-                <!-- Bước 1: Chọn Loại Thép, Nhiệt Luyện -->
                 <div id="step5" class="calculation-step d-none">
                     <h5>Bước 2a: Chọn vật liệu bánh răng dẫn</h5>
-                    <div class="table-responsive" style="height: 80vh; overflow-y: auto;">
+                    <div class="table-responsive" style="height: 50vh; overflow-y: auto;">
                         <table class="table table-bordered">
                             <thead class="table-dark">
                                 <tr>
@@ -108,7 +106,7 @@
 
                 <div id="step6" class="calculation-step d-none">
                     <h5>Bước 2b: Chọn vật liệu bánh răng bị dẫn</h5>
-                    <div class="table-responsive" style="height: 80vh; overflow-y: auto;">
+                    <div class="table-responsive" style="height: 50vh; overflow-y: auto;">
                         <table class="table table-bordered">
                             <thead class="table-dark">
                                 <tr>
@@ -125,6 +123,72 @@
                                 
                             </tbody>
                         </table>
+                    </div>
+                </div>
+
+                <div id="step7" class="calculation-step d-none">
+                    <h5>Bước 3a: Chọn vật liệu bánh răng dẫn</h5>
+                    <div class="table-responsive" style="height: 50vh; overflow-y: auto;">
+                        <table class="table table-bordered">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Nhãn hiệu thép</th>
+                                    <th>Nhiệt luyện</th>
+                                    <th>Kích thước (mm)</th>
+                                    <th>Độ cứng (HB/HRC)</th>
+                                    <th>Giới hạn bền (MPa)</th>
+                                    <th>Giới hạn chảy (MPa)</th>
+                                    <th class="text-center">Chọn</th>
+                                </tr>
+                            </thead>
+                            <tbody id="shaftGearMaterial">
+                                
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div id="step8" class="calculation-step d-none">
+                    <h5>Bước 3b: Chọn vật liệu bánh răng bị dẫn</h5>
+                    <div class="table-responsive" style="height: 50vh; overflow-y: auto;">
+                        <table class="table table-bordered">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Nhãn hiệu thép</th>
+                                    <th>Nhiệt luyện</th>
+                                    <th>Kích thước (mm)</th>
+                                    <th>Độ cứng (HB/HRC)</th>
+                                    <th>Giới hạn bền (MPa)</th>
+                                    <th>Giới hạn chảy (MPa)</th>
+                                    <th class="text-center">Chọn</th>
+                                </tr>
+                            </thead>
+                            <tbody id="shaftGearMaterial2">
+                                
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div id="step9" class="calculation-step d-none">
+                    <h5>Bước 4: Chọn điều kiện làm việc của bộ truyền xích</h5>
+                    <div class="table-responsive" style="height: 50vh; overflow-y: auto;">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Điều kiện làm việc</th>
+                                    <th><th>
+                                    <th>Trị số</th>
+                                </tr>
+                            </thead>
+                            <tbody id="chainConditionTable"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div id="step10" class="calculation-step d-none">
+                    <div class="table-responsive text-center py-4" style="height: 50vh; overflow-y: auto;">
+                        <h5>Tính toán hoàn tất!</h5><i class='text-success fs-1 bi bi-check-circle'></i>
                     </div>
                 </div>
             </div>
